@@ -1,0 +1,23 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background: linear-gradient(to bottom, #87ceeb, #f0f8ff);
+    margin: 0;
+}
+
+h1 {
+    color: #ff4081;
+}
+
+#score, #question {
+    font-size: 20px;
+    margin: 10px;
+    color: #333;
+}
+
+canvas {
+    background: #e0f7fa;
+    display: block;
+    margin: auto;
+    border: 2px solid #0097a7;
+}

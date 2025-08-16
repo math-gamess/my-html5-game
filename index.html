@@ -1,15 +1,39 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>لعبة بالونات الأرقام</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Math Challenge Game</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>🎈 لعبة بالونات الأرقام 🎈</h1>
-    <div id="score">النقاط: 0 | المحاولات: 3</div>
-    <div id="question">؟</div>
-    <canvas id="gameCanvas"></canvas>
-    <script src="script.js"></script>
+  <!-- Start Screen -->
+  <div id="start-screen">
+    <h1>Welcome to Math Challenge!</h1>
+    <p>Test your brain with fun math questions 🎯</p>
+    <button onclick="startGame()">Start Game</button>
+  </div>
+
+  <!-- Game Screen -->
+  <div id="game" style="display:none;">
+    <h2>Solve the Question:</h2>
+    <p id="question"></p>
+    <input type="text" id="answer" placeholder="Your answer">
+    <button onclick="checkAnswer()">Submit</button>
+  </div>
+
+  <!-- Win Screen -->
+  <div id="win-screen" style="display:none;">
+    <h2>🎉 Congratulations! You Won! 🎉</h2>
+    <button onclick="restartGame()">Play Again</button>
+  </div>
+
+  <!-- Lose Screen -->
+  <div id="lose-screen" style="display:none;">
+    <h2>❌ Game Over! Try Again ❌</h2>
+    <button onclick="restartGame()">Retry</button>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>

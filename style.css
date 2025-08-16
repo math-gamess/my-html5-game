@@ -1,23 +1,33 @@
 body {
-    font-family: Arial, sans-serif;
-    text-align: center;
-    background: linear-gradient(to bottom, #87ceeb, #f0f8ff);
-    margin: 0;
+  font-family: Arial, sans-serif;
+  text-align: center;
+  background: #f4f4f9;
+  color: #333;
+  margin: 0;
+  padding: 0;
 }
 
-h1 {
-    color: #ff4081;
+h1, h2 {
+  color: #2c3e50;
 }
 
-#score, #question {
-    font-size: 20px;
-    margin: 10px;
-    color: #333;
+button {
+  padding: 10px 20px;
+  margin-top: 15px;
+  background: #3498db;
+  border: none;
+  color: white;
+  font-size: 16px;
+  cursor: pointer;
+  border-radius: 5px;
 }
 
-canvas {
-    background: #e0f7fa;
-    display: block;
-    margin: auto;
-    border: 2px solid #0097a7;
+button:hover {
+  background: #2980b9;
 }
+
+#start-screen, #game, #win-screen, #lose-screen {
+  margin-top: 100px;
+}
+
+ 

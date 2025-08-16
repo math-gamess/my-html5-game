@@ -47,6 +47,12 @@
       font-size: 18px;
       color: #444;
     }
+    #timer {
+      font-size: 22px;
+      margin: 20px 0;
+      font-weight: bold;
+      color: #e63946;
+    }
   </style>
 </head>
 <body>
@@ -66,6 +72,7 @@
     <button onclick="checkAnswer()">تحقق</button>
     <p id="feedback"></p>
     <p id="status"></p>
+    <p id="timer">⏳ الوقت: 15 ثانية</p>
   </div>
 
   <!-- شاشة الفوز -->
@@ -82,10 +89,17 @@
     <button onclick="retryLevel()">إعادة المحاولة</button>
   </div>
 
+  <!-- ملفات الصوت -->
+  <audio id="winSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_1dbe94d885.mp3"></audio>
+  <audio id="loseSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_6f3cfc7f1b.mp3"></audio>
+  <audio id="tickSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_2c63180e8a.mp3"></audio>
+
   <script>
     let correctAnswer;
     let level = 1;
     let score = 0;
+    let timeLeft = 15;
+    let timerInterval;
 
     function showScreen(id) {
       document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -100,7 +114,7 @@
     }
 
     function generateQuestion() {
-      let max = level * 10; // كلما ارتفع المستوى الأرقام تكبر
+      let max = level * 10;
       let a = Math.floor(Math.random() * max) + 1;
       let b = Math.floor(Math.random() * max) + 1;
       correctAnswer = a + b;
@@ -108,14 +122,39 @@
       document.getElementById("answer").value = "";
       document.getElementById("feedback").innerText = "";
       document.getElementById("status").innerText = `🎯 المستوى: ${level} | ⭐ النقاط: ${score}`;
+      
+      // إعادة ضبط المؤقت
+      timeLeft = 15;
+      document.getElementById("timer").innerText = `⏳ الوقت: ${timeLeft} ثانية`;
+      clearInterval(timerInterval);
+      timerInterval = setInterval(updateTimer, 1000);
+    }
+
+    function updateTimer() {
+      timeLeft--;
+      document.getElementById("timer").innerText = `⏳ الوقت: ${timeLeft} ثانية`;
+      
+      // تشغيل صوت التيك عند العد
+      if (timeLeft > 0) {
+        document.getElementById("tickSound").play();
+      }
+      
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        document.getElementById("loseSound").play();
+        showScreen("lose");
+      }
     }
 
     function checkAnswer() {
       let userAnswer = parseInt(document.getElementById("answer").value);
+      clearInterval(timerInterval);
       if (userAnswer === correctAnswer) {
         score += 10;
+        document.getElementById("winSound").play();
         showScreen("win");
       } else {
+        document.getElementById("loseSound").play();
         showScreen("lose");
       }
     }

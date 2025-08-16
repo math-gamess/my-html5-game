@@ -1,359 +1,209 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar">
 <head>
-<meta charset="UTF-8" />
-<title>Math Balloons</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<style>
-  :root{
-    --bg1:#b3e5fc; --bg2:#ffffff;
-    --ink:#1f2937; --brand:#ff4d6d; --ok:#22c55e; --bad:#ef4444;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0}
-  body{
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background: linear-gradient(180deg,var(--bg1),var(--bg2));
-    overflow:hidden; color:var(--ink);
-  }
-  #game{
-    position:relative; width:100vw; height:100vh; overflow:hidden;
-  }
-  /* HUD */
-  .hud{
-    position:absolute; top:10px; left:10px; right:10px; z-index:5;
-    display:flex; gap:10px; align-items:center; justify-content:space-between;
-    padding:8px 12px; background:rgba(255,255,255,.85);
-    border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.12);
-    font-weight:600; flex-wrap:wrap;
-  }
-  .hud .group{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
-  .badge{padding:6px 10px; border-radius:10px; background:#eef2ff}
-  #lives{letter-spacing:2px}
-  #question{font-size:clamp(18px,3.2vw,28px); font-weight:800}
-  .muter{display:flex; align-items:center; gap:8px; font-weight:600}
-  .muter input{width:18px; height:18px}
-
-  /* Balloons */
-  .balloon{
-    position:absolute; width:72px; height:96px; will-change:transform, opacity;
-    border-radius:50% 50% 50% 50%/60% 60% 40% 40%;
-    box-shadow: inset 0 10px 18px rgba(255,255,255,.45),
-                0 10px 16px rgba(0,0,0,.18);
-    display:flex; align-items:center; justify-content:center;
-    color:#111; font-weight:800; font-size:22px; user-select:none; cursor:pointer;
-  }
-  .balloon .string{
-    position:absolute; left:50%; top:86px; width:2px; height:34px;
-    background:rgba(0,0,0,.25); transform:translateX(-50%);
-  }
-  .pop{transform:scale(1.15)!important; opacity:.2!important; transition:.12s ease}
-
-  /* Overlays */
-  .overlay{
-    position:absolute; inset:0; z-index:10; display:flex;
-    flex-direction:column; align-items:center; justify-content:center;
-    text-align:center; padding:24px; background:rgba(0,0,0,.6); color:#fff;
-  }
-  .overlay h1{margin:0 0 8px; font-size:clamp(28px,6vw,40px)}
-  .overlay p{opacity:.95; font-size:clamp(16px,3.2vw,18px)}
-  .btn{
-    margin-top:16px; padding:12px 20px; font-size:18px; border:0; border-radius:12px;
-    color:#fff; background:var(--brand); cursor:pointer;
-    box-shadow:0 10px 20px rgba(255,77,109,.35);
-  }
-  .btn:hover{filter:brightness(1.06)}
-  .hide{display:none}
-
-  /* Mobile */
-  @media (max-width:480px){
-    .balloon{width:64px; height:86px; font-size:20px}
-  }
-</style>
+  <meta charset="UTF-8">
+  <title>لعبة البالونات الحسابية للأطفال</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      text-align: center;
+      font-family: 'Tahoma', sans-serif;
+      background: linear-gradient(#87ceeb, #ffffff);
+      overflow: hidden;
+    }
+    h1 {
+      margin: 10px;
+    }
+    #question {
+      font-size: 28px;
+      margin: 15px;
+      color: #222;
+    }
+    #gameArea {
+      position: relative;
+      width: 100%;
+      height: 500px;
+      background: #d0f0ff;
+      border: 2px solid #333;
+      overflow: hidden;
+    }
+    .balloon {
+      position: absolute;
+      width: 70px;
+      height: 90px;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 90px;
+      font-size: 22px;
+      font-weight: bold;
+      color: #fff;
+      cursor: pointer;
+      user-select: none;
+    }
+    #message {
+      font-size: 26px;
+      margin-top: 15px;
+      font-weight: bold;
+    }
+    #fireworks {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+  </style>
 </head>
 <body>
-  <div id="game">
-    <!-- HUD -->
-    <div class="hud" id="hud">
-      <div class="group">
-        <div id="question" class="badge">What is 2 + 3 ?</div>
-        <div id="score" class="badge">Score: 0</div>
-        <div id="level" class="badge">Level: 1</div>
-      </div>
-      <div class="group">
-        <div id="timer" class="badge">Time: 15s</div>
-        <div id="lives" class="badge">❤️❤️❤️</div>
-        <label class="muter">
-          <input type="checkbox" id="muteToggle" />
-          Mute
-        </label>
-      </div>
-    </div>
+  <h1>🎈 لعبة البالونات الحسابية 🎈</h1>
+  <div id="question">اضغط على ابدأ</div>
+  <button onclick="startGame()">ابدأ اللعبة</button>
+  <div id="gameArea"></div>
+  <div id="message"></div>
+  <canvas id="fireworks"></canvas>
 
-    <!-- Start -->
-    <div id="intro" class="overlay">
-      <h1>🎈 Math Balloons</h1>
-      <p>Pop the balloon with the correct answer before time runs out!</p>
-      <p>Each mistake costs a heart. Get 10 correct answers to win.</p>
-      <button class="btn" id="startBtn">Start Game</button>
-    </div>
+  <audio id="bgMusic" loop>
+    <source src="https://www.bensound.com/bensound-music/bensound-littleidea.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="correctSound">
+    <source src="https://www.soundjay.com/buttons/sounds/button-3.mp3" type="audio/mpeg">
+  </audio>
+  <audio id="wrongSound">
+    <source src="https://www.soundjay.com/buttons/sounds/button-10.mp3" type="audio/mpeg">
+  </audio>
 
-    <!-- End -->
-    <div id="end" class="overlay hide">
-      <h1 id="endTitle">Game Over</h1>
-      <p id="endStats">Your Score: 0</p>
-      <button class="btn" id="againBtn">Play Again</button>
-    </div>
-  </div>
+  <script>
+    let level = 1;
+    let stage = 1;
+    let score = 0;
+    let gameInterval;
+    const gameArea = document.getElementById("gameArea");
+    const questionBox = document.getElementById("question");
+    const message = document.getElementById("message");
 
-  <!-- Audio (royalty-free from Pixabay CDN) -->
-  <audio id="bgm" src="https://cdn.pixabay.com/audio/2022/03/15/audio_5d5f2f7b79.mp3" loop preload="none"></audio>
-  <audio id="popSnd" src="https://cdn.pixabay.com/audio/2022/03/15/audio_6d2f5b4e7b.mp3" preload="none"></audio>
-  <audio id="okSnd"  src="https://cdn.pixabay.com/audio/2022/03/15/audio_1dbe94d885.mp3" preload="none"></audio>
-  <audio id="badSnd" src="https://cdn.pixabay.com/audio/2022/03/15/audio_6f3cfc7f1b.mp3" preload="none"></audio>
-  <audio id="tickSnd" src="https://cdn.pixabay.com/audio/2022/03/15/audio_2c63180e8a.mp3" preload="none"></audio>
-
-<script>
-(() => {
-  // Elements
-  const root = document.getElementById('game');
-  const hud = {
-    question: document.getElementById('question'),
-    score: document.getElementById('score'),
-    level: document.getElementById('level'),
-    timer: document.getElementById('timer'),
-    lives: document.getElementById('lives'),
-    mute: document.getElementById('muteToggle')
-  };
-  const intro = document.getElementById('intro');
-  const startBtn = document.getElementById('startBtn');
-  const end = document.getElementById('end');
-  const endTitle = document.getElementById('endTitle');
-  const endStats = document.getElementById('endStats');
-  const againBtn = document.getElementById('againBtn');
-
-  // Audio
-  const bgm = document.getElementById('bgm');
-  const popSnd = document.getElementById('popSnd');
-  const okSnd  = document.getElementById('okSnd');
-  const badSnd = document.getElementById('badSnd');
-  const tickSnd= document.getElementById('tickSnd');
-
-  // State
-  let score = 0, level = 1, lives = 3, timeLeft = 15;
-  let correctAnswer = null, balloons = [];
-  let rafId = null, spawnId = null, timerId = null;
-  let playing = false;
-  const TARGET_CORRECT = 10; // to win
-  const COLORS = ['#ff4d6d','#4dabf7','#38d9a9','#ffd43b','#845ef7','#ff922b','#60a5fa','#f472b6'];
-
-  function randInt(min, max){ return Math.floor(Math.random()*(max-min+1))+min; }
-  function clamp(v,min,max){ return Math.max(min, Math.min(max,v)); }
-
-  // Question generator (+, −, ×) with safe ranges
-  function makeQuestion() {
-    const ops = ['+','-','×'];
-    const op = ops[randInt(0, ops.length-1)];
-    let a, b, ans;
-    switch(op){
-      case '+':
-        a = randInt(1, 8 + level*2);
-        b = randInt(1, 8 + level*2);
-        ans = a + b;
-        break;
-      case '-':
-        a = randInt(2, 10 + level*2);
-        b = randInt(1, a); // no negative
-        ans = a - b;
-        break;
-      case '×':
-        a = randInt(1, clamp(5,1,3+level)); // grows slowly
-        b = randInt(1, clamp(5,1,3+level));
-        ans = a * b;
-        break;
+    function startGame() {
+      document.getElementById("bgMusic").play();
+      level = 1;
+      stage = 1;
+      score = 0;
+      message.innerHTML = "";
+      nextQuestion();
     }
-    correctAnswer = ans;
-    hud.question.textContent = `What is ${a} ${op} ${b} ?`;
-    // build choices (1 correct + 2~3 wrong)
-    const set = new Set([ans]);
-    while(set.size < 4){
-      const delta = randInt(-6, 6) || 1;
-      set.add(ans + delta);
+
+    function getOperation(level) {
+      if (level <= 3) return "+";  // جمع
+      if (level <= 6) return "-";  // طرح
+      return "/";                 // قسمة
     }
-    return Array.from(set).sort(() => Math.random() - .5);
-  }
 
-  // Balloon factory (spawns candidates for current question)
-  function spawnBalloons() {
-    clearBalloons();
-    const choices = makeQuestion();
-    const w = root.clientWidth, h = root.clientHeight;
-    const laneCount = Math.min(choices.length, 5);
-    for(let i=0;i<choices.length;i++){
-      const b = document.createElement('div');
-      b.className = 'balloon';
-      b.style.background = COLORS[i % COLORS.length];
-      const lane = i % laneCount;
-      const margin = 24;
-      const laneWidth = (w - margin*2) / laneCount;
-      const x = margin + laneWidth * lane + (laneWidth - 72)/2;
-      const startY = h + randInt(0, 60);
-      b.style.left = x + 'px';
-      b.style.top  = startY + 'px';
-      b.dataset.value = choices[i];
-      b.textContent = choices[i];
-      const string = document.createElement('div');
-      string.className = 'string';
-      b.appendChild(string);
+    function nextQuestion() {
+      clearInterval(gameInterval);
+      gameArea.innerHTML = "";
 
-      // speed increases with level
-      b._vy = 70 + level*20 + Math.random()*30;
-      b._y = startY;
-
-      b.addEventListener('pointerdown', () => {
-        if(!playing) return;
-        popSndTry();
-        b.classList.add('pop');
-        setTimeout(()=>b.remove(), 120);
-        if (Number(b.dataset.value) === correctAnswer) {
-          score += 1;
-          okTry();
-          nextRound(true);
-        } else {
-          lives -= 1;
-          badTry();
-          nextRound(false);
-        }
-      }, {passive:true});
-
-      root.appendChild(b);
-      balloons.push(b);
-    }
-  }
-
-  function clearBalloons(){
-    balloons.forEach(b => b.remove());
-    balloons = [];
-  }
-
-  function loop(){
-    const dt = 1/60;
-    const h = root.clientHeight;
-    balloons.forEach(b=>{
-      b._y -= b._vy * dt;
-      if(b._y < -120) {
-        // if the correct one escapes, count as mistake
-        if (Number(b.dataset.value) === correctAnswer) {
-          lives = Math.max(0, lives - 1);
-          updateHUD();
-          // move immediately to next round
-          nextRound(false, true);
-        }
-        b.remove();
-      } else {
-        b.style.transform = `translateY(${b._y - h}px)`;
+      if (level > 9) {
+        endGame();
+        return;
       }
-    });
-    balloons = balloons.filter(b => b.isConnected);
-    rafId = requestAnimationFrame(loop);
-  }
 
-  function updateHUD(){
-    hud.score.textContent = `Score: ${score}`;
-    hud.level.textContent = `Level: ${level}`;
-    hud.timer.textContent = `Time: ${timeLeft}s`;
-    hud.lives.textContent = '❤️'.repeat(lives) + '🖤'.repeat(3 - lives);
-  }
+      let op = getOperation(level);
+      let a = Math.floor(Math.random() * 10) + 1;
+      let b = Math.floor(Math.random() * 10) + 1;
+      if (op === "-" && b > a) [a,b] = [b,a];
+      if (op === "/") b = [1,2,5][Math.floor(Math.random()*3)];
 
-  function startTimer(){
-    clearInterval(timerId);
-    timeLeft = 15;
-    updateHUD();
-    timerId = setInterval(()=>{
-      timeLeft--;
-      if(!hud.mute.checked && timeLeft<=5 && timeLeft>0) tickSnd.play().catch(()=>{});
-      updateHUD();
-      if(timeLeft<=0){
-        clearInterval(timerId);
-        lives -= 1;
-        badTry();
-        nextRound(false);
+      let correct = (op === "+") ? a+b : (op === "-") ? a-b : Math.floor(a/b);
+      questionBox.innerText = `${a} ${op} ${b} = ?`;
+
+      for (let i=0; i<4; i++) {
+        let balloon = document.createElement("div");
+        balloon.classList.add("balloon");
+        balloon.style.left = Math.random() * (gameArea.offsetWidth - 70) + "px";
+        balloon.style.top = "500px";
+        balloon.style.background = randomColor();
+
+        let value = (i===0) ? correct : correct + Math.floor(Math.random()*5)-2;
+        balloon.innerText = value;
+
+        balloon.onclick = () => {
+          if (value === correct) {
+            document.getElementById("correctSound").play();
+            score++;
+            if (score % 3 === 0) level++;
+            nextQuestion();
+          } else {
+            document.getElementById("wrongSound").play();
+            message.innerHTML = "❌ حاول مرة أخرى";
+          }
+        };
+
+        gameArea.appendChild(balloon);
       }
-    },1000);
-  }
 
-  function nextRound(correct, escaped=false){
-    // stop timer and clear balloons then decide state
-    clearInterval(timerId);
-    clearBalloons();
-    if(correct){
-      // every 3 correct answers, level up
-      if(score % 3 === 0) level++;
+      animateBalloons();
     }
-    if(lives <= 0){
-      return endGame(false);
+
+    function animateBalloons() {
+      const balloons = document.querySelectorAll(".balloon");
+      let speed = 1 + (level*0.3);
+      gameInterval = setInterval(() => {
+        balloons.forEach(b => {
+          b.style.top = (parseInt(b.style.top)-speed)+"px";
+          if (parseInt(b.style.top) < -100) {
+            b.remove();
+          }
+        });
+      }, 30);
     }
-    if(score >= TARGET_CORRECT){
-      return endGame(true);
+
+    function endGame() {
+      questionBox.innerText = "🎉 مبروك! لقد أنهيت جميع المراحل!";
+      message.innerHTML = "👏 أنت طفل ذكي ونابغة في الحساب!";
+      launchFireworks();
     }
-    // continue
-    spawnBalloons();
-    startTimer();
-    updateHUD();
-  }
 
-  function startGame(){
-    // reset state
-    score = 0; level = 1; lives = 3;
-    playing = true;
-    intro.classList.add('hide');
-    end.classList.add('hide');
-    updateHUD();
-    // audio policy: start after user action
-    if(!hud.mute.checked){
-      bgm.volume = 0.35;
-      bgm.play().catch(()=>{});
+    function randomColor(){
+      const colors=["#e74c3c","#3498db","#f1c40f","#2ecc71","#9b59b6"];
+      return colors[Math.floor(Math.random()*colors.length)];
     }
-    // main loop + first round
-    spawnBalloons();
-    startTimer();
-    cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(loop);
-  }
 
-  function endGame(win){
-    playing = false;
-    clearInterval(timerId);
-    cancelAnimationFrame(rafId);
-    clearBalloons();
-    endTitle.textContent = win ? '🎉 You Win!' : '😢 Game Over';
-    endStats.textContent = `Score: ${score} • Level: ${level}`;
-    end.classList.remove('hide');
-  }
+    // fireworks بسيط
+    function launchFireworks(){
+      const canvas=document.getElementById("fireworks");
+      const ctx=canvas.getContext("2d");
+      canvas.width=window.innerWidth;
+      canvas.height=window.innerHeight;
+      let particles=[];
 
-  // Small audio helpers (respect mute)
-  function popSndTry(){ if(!hud.mute.checked) popSnd.play().catch(()=>{}); }
-  function okTry(){ if(!hud.mute.checked) okSnd.play().catch(()=>{}); }
-  function badTry(){ if(!hud.mute.checked) badSnd.play().catch(()=>{}); }
-
-  // Events
-  startBtn.addEventListener('click', startGame);
-  againBtn.addEventListener('click', startGame);
-  hud.mute.addEventListener('change', ()=>{
-    if(hud.mute.checked){ bgm.pause(); }
-    else if(playing){ bgm.play().catch(()=>{}); }
-  });
-
-  // Keep balloons in bounds on resize
-  window.addEventListener('resize', ()=>{
-    balloons.forEach(b=>{
-      const x = parseFloat(b.style.left)||0;
-      const max = root.clientWidth - 72;
-      if(x>max) b.style.left = Math.max(0,max)+'px';
-    });
-  });
-})();
-</script>
+      function Particle(x,y,color){
+        this.x=x;this.y=y;this.color=color;
+        this.vx=Math.random()*4-2;
+        this.vy=Math.random()*-4-2;
+        this.life=100;
+      }
+      function draw(){
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        particles.forEach((p,i)=>{
+          ctx.fillStyle=p.color;
+          ctx.fillRect(p.x,p.y,4,4);
+          p.x+=p.vx;p.y+=p.vy;p.vy+=0.05;p.life--;
+          if(p.life<=0)particles.splice(i,1);
+        });
+      }
+      function loop(){
+        if(Math.random()<0.1){
+          let x=Math.random()*canvas.width;
+          let y=Math.random()*canvas.height/2;
+          for(let i=0;i<50;i++){
+            particles.push(new Particle(x,y,randomColor()));
+          }
+        }
+        draw();
+        requestAnimationFrame(loop);
+      }
+      loop();
+    }
+  </script>
 </body>
 </html>
-

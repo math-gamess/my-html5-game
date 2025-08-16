@@ -1,209 +1,221 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>لعبة البالونات الحسابية للأطفال</title>
+  <meta charset="UTF-8" />
+  <title>Math Balloon Game</title>
   <style>
     body {
       margin: 0;
-      padding: 0;
-      text-align: center;
-      font-family: 'Tahoma', sans-serif;
-      background: linear-gradient(#87ceeb, #ffffff);
       overflow: hidden;
+      font-family: "Comic Sans MS", cursive, sans-serif;
+      background: url('https://i.ibb.co/0j1dVTr/cartoon-sky.png') no-repeat center center fixed;
+      background-size: cover;
     }
-    h1 {
-      margin: 10px;
-    }
-    #question {
-      font-size: 28px;
-      margin: 15px;
-      color: #222;
-    }
-    #gameArea {
-      position: relative;
-      width: 100%;
-      height: 500px;
-      background: #d0f0ff;
-      border: 2px solid #333;
-      overflow: hidden;
-    }
-    .balloon {
+
+    #hud {
       position: absolute;
-      width: 70px;
-      height: 90px;
-      border-radius: 50%;
-      text-align: center;
-      line-height: 90px;
-      font-size: 22px;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 30px;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    #question {
+      position: absolute;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 32px;
+      font-weight: bold;
+      color: #222;
+      background: rgba(255,255,255,0.8);
+      padding: 10px 20px;
+      border-radius: 15px;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    #message {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 40px;
       font-weight: bold;
       color: #fff;
-      cursor: pointer;
-      user-select: none;
-    }
-    #message {
-      font-size: 26px;
-      margin-top: 15px;
-      font-weight: bold;
-    }
-    #fireworks {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
+      background: rgba(0,0,0,0.6);
+      padding: 20px 30px;
+      border-radius: 20px;
+      display: none;
     }
   </style>
 </head>
 <body>
-  <h1>🎈 لعبة البالونات الحسابية 🎈</h1>
-  <div id="question">اضغط على ابدأ</div>
-  <button onclick="startGame()">ابدأ اللعبة</button>
-  <div id="gameArea"></div>
+  <div id="hud">
+    <div id="level">Level: 1</div>
+    <div id="score">Score: 0</div>
+    <div id="time">Time: 30</div>
+  </div>
+  <div id="question">What is 2 + 3 ?</div>
+  <canvas id="gameCanvas"></canvas>
   <div id="message"></div>
-  <canvas id="fireworks"></canvas>
 
-  <audio id="bgMusic" loop>
-    <source src="https://www.bensound.com/bensound-music/bensound-littleidea.mp3" type="audio/mpeg">
+  <audio id="bg-music" loop>
+    <source src="https://www.bensound.com/bensound-music/bensound-funday.mp3" type="audio/mpeg">
   </audio>
-  <audio id="correctSound">
-    <source src="https://www.soundjay.com/buttons/sounds/button-3.mp3" type="audio/mpeg">
-  </audio>
-  <audio id="wrongSound">
-    <source src="https://www.soundjay.com/buttons/sounds/button-10.mp3" type="audio/mpeg">
+  <audio id="pop-sound">
+    <source src="https://www.myinstants.com/media/sounds/pop.mp3" type="audio/mpeg">
   </audio>
 
   <script>
-    let level = 1;
-    let stage = 1;
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let balloons = [];
     let score = 0;
-    let gameInterval;
-    const gameArea = document.getElementById("gameArea");
-    const questionBox = document.getElementById("question");
-    const message = document.getElementById("message");
+    let level = 1;
+    let time = 30;
+    let currentAnswer = 0;
+    let gameInterval, timerInterval;
+
+    const bgMusic = document.getElementById("bg-music");
+    const popSound = document.getElementById("pop-sound");
 
     function startGame() {
-      document.getElementById("bgMusic").play();
-      level = 1;
-      stage = 1;
-      score = 0;
-      message.innerHTML = "";
-      nextQuestion();
-    }
-
-    function getOperation(level) {
-      if (level <= 3) return "+";  // جمع
-      if (level <= 6) return "-";  // طرح
-      return "/";                 // قسمة
-    }
-
-    function nextQuestion() {
-      clearInterval(gameInterval);
-      gameArea.innerHTML = "";
-
-      if (level > 9) {
-        endGame();
-        return;
+      bgMusic.play();
+      generateQuestion();
+      balloons = [];
+      for (let i = 0; i < 5; i++) {
+        balloons.push(createBalloon());
       }
+      gameInterval = setInterval(updateGame, 40);
+      timerInterval = setInterval(updateTimer, 1000);
+    }
 
-      let op = getOperation(level);
-      let a = Math.floor(Math.random() * 10) + 1;
-      let b = Math.floor(Math.random() * 10) + 1;
-      if (op === "-" && b > a) [a,b] = [b,a];
-      if (op === "/") b = [1,2,5][Math.floor(Math.random()*3)];
+    function createBalloon() {
+      const colors = ["red", "blue", "green", "yellow", "purple", "orange"];
+      return {
+        x: Math.random() * (canvas.width - 60) + 30,
+        y: canvas.height + Math.random() * 200,
+        r: 40,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        value: Math.floor(Math.random() * 20),
+        speed: 1 + Math.random() * 1.5
+      };
+    }
 
-      let correct = (op === "+") ? a+b : (op === "-") ? a-b : Math.floor(a/b);
-      questionBox.innerText = `${a} ${op} ${b} = ?`;
+    function generateQuestion() {
+      let a, b, op;
+      if (level <= 3) {
+        a = Math.floor(Math.random() * 5) + 1;
+        b = Math.floor(Math.random() * 5) + 1;
+        op = "+";
+        currentAnswer = a + b;
+      } else if (level <= 6) {
+        a = Math.floor(Math.random() * 10) + 1;
+        b = Math.floor(Math.random() * 10) + 1;
+        op = "-";
+        currentAnswer = a - b;
+      } else if (level <= 10) {
+        a = Math.floor(Math.random() * 10) + 1;
+        b = Math.floor(Math.random() * 5) + 1;
+        op = "÷";
+        currentAnswer = Math.floor(a / b);
+        a = currentAnswer * b;
+      } else {
+        const ops = ["+", "-", "÷"];
+        op = ops[Math.floor(Math.random() * ops.length)];
+        a = Math.floor(Math.random() * 10) + 1;
+        b = Math.floor(Math.random() * 10) + 1;
+        if (op === "+") currentAnswer = a + b;
+        if (op === "-") currentAnswer = a - b;
+        if (op === "÷") { b = Math.floor(Math.random() * 5) + 1; currentAnswer = Math.floor(a / b); a = currentAnswer * b; }
+      }
+      document.getElementById("question").textContent = `What is ${a} ${op} ${b} ?`;
+    }
 
-      for (let i=0; i<4; i++) {
-        let balloon = document.createElement("div");
-        balloon.classList.add("balloon");
-        balloon.style.left = Math.random() * (gameArea.offsetWidth - 70) + "px";
-        balloon.style.top = "500px";
-        balloon.style.background = randomColor();
+    function updateGame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        let value = (i===0) ? correct : correct + Math.floor(Math.random()*5)-2;
-        balloon.innerText = value;
+      balloons.forEach((balloon, i) => {
+        balloon.y -= balloon.speed;
+        ctx.beginPath();
+        ctx.arc(balloon.x, balloon.y, balloon.r, 0, Math.PI * 2);
+        ctx.fillStyle = balloon.color;
+        ctx.fill();
+        ctx.fillStyle = "white";
+        ctx.font = "20px Comic Sans MS";
+        ctx.textAlign = "center";
+        ctx.fillText(balloon.value, balloon.x, balloon.y + 5);
 
-        balloon.onclick = () => {
-          if (value === correct) {
-            document.getElementById("correctSound").play();
-            score++;
-            if (score % 3 === 0) level++;
-            nextQuestion();
+        if (balloon.y + balloon.r < 0) {
+          balloons[i] = createBalloon();
+        }
+      });
+    }
+
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      balloons.forEach((balloon, i) => {
+        const dx = mouseX - balloon.x;
+        const dy = mouseY - balloon.y;
+        if (Math.sqrt(dx * dx + dy * dy) < balloon.r) {
+          if (balloon.value === currentAnswer) {
+            popSound.play();
+            score += 10;
+            level++;
+            resetLevel();
           } else {
-            document.getElementById("wrongSound").play();
-            message.innerHTML = "❌ حاول مرة أخرى";
+            score -= 5;
           }
-        };
+          document.getElementById("score").textContent = "Score: " + score;
+        }
+      });
+    });
 
-        gameArea.appendChild(balloon);
+    function updateTimer() {
+      time--;
+      document.getElementById("time").textContent = "Time: " + time;
+      if (time <= 0) {
+        endGame();
       }
-
-      animateBalloons();
     }
 
-    function animateBalloons() {
-      const balloons = document.querySelectorAll(".balloon");
-      let speed = 1 + (level*0.3);
-      gameInterval = setInterval(() => {
-        balloons.forEach(b => {
-          b.style.top = (parseInt(b.style.top)-speed)+"px";
-          if (parseInt(b.style.top) < -100) {
-            b.remove();
-          }
-        });
-      }, 30);
+    function resetLevel() {
+      clearInterval(gameInterval);
+      clearInterval(timerInterval);
+      time = 30;
+      document.getElementById("level").textContent = "Level: " + level;
+      startGame();
     }
 
     function endGame() {
-      questionBox.innerText = "🎉 مبروك! لقد أنهيت جميع المراحل!";
-      message.innerHTML = "👏 أنت طفل ذكي ونابغة في الحساب!";
-      launchFireworks();
+      clearInterval(gameInterval);
+      clearInterval(timerInterval);
+      bgMusic.pause();
+      document.getElementById("message").style.display = "block";
+      if (level > 10) {
+        document.getElementById("message").textContent = "🎉 You are a Genius! 🎉";
+      } else {
+        document.getElementById("message").textContent = "Game Over! Try Again!";
+      }
     }
 
-    function randomColor(){
-      const colors=["#e74c3c","#3498db","#f1c40f","#2ecc71","#9b59b6"];
-      return colors[Math.floor(Math.random()*colors.length)];
-    }
-
-    // fireworks بسيط
-    function launchFireworks(){
-      const canvas=document.getElementById("fireworks");
-      const ctx=canvas.getContext("2d");
-      canvas.width=window.innerWidth;
-      canvas.height=window.innerHeight;
-      let particles=[];
-
-      function Particle(x,y,color){
-        this.x=x;this.y=y;this.color=color;
-        this.vx=Math.random()*4-2;
-        this.vy=Math.random()*-4-2;
-        this.life=100;
-      }
-      function draw(){
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        particles.forEach((p,i)=>{
-          ctx.fillStyle=p.color;
-          ctx.fillRect(p.x,p.y,4,4);
-          p.x+=p.vx;p.y+=p.vy;p.vy+=0.05;p.life--;
-          if(p.life<=0)particles.splice(i,1);
-        });
-      }
-      function loop(){
-        if(Math.random()<0.1){
-          let x=Math.random()*canvas.width;
-          let y=Math.random()*canvas.height/2;
-          for(let i=0;i<50;i++){
-            particles.push(new Particle(x,y,randomColor()));
-          }
-        }
-        draw();
-        requestAnimationFrame(loop);
-      }
-      loop();
-    }
+    startGame();
   </script>
 </body>
 </html>

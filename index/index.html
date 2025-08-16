@@ -2,29 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Math Balloon Game</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Math Challenge Game</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <!-- Start Screen -->
-  <div id="start-screen" class="screen">
-    <h1>🎈 Welcome to Math Balloon Game!</h1>
-    <p>Solve math problems and pop the correct balloon before it falls.</p>
-    <button id="start-btn">Start Game</button>
+  <div id="start-screen">
+    <h1>Welcome to Math Challenge!</h1>
+    <p>Test your brain with fun math questions 🎯</p>
+    <button onclick="startGame()">Start Game</button>
   </div>
 
   <!-- Game Screen -->
-  <div id="game-screen" class="screen hidden">
-    <h2 id="question">Question appears here</h2>
-    <canvas id="gameCanvas" width="600" height="400"></canvas>
-    <p id="score">Score: 0</p>
+  <div id="game" style="display:none;">
+    <h2>Solve the Question:</h2>
+    <p id="question"></p>
+    <input type="text" id="answer" placeholder="Your answer">
+    <button onclick="checkAnswer()">Submit</button>
   </div>
 
-  <!-- End Screen -->
-  <div id="end-screen" class="screen hidden">
-    <h1 id="end-message"></h1>
-    <p id="final-score"></p>
-    <button id="restart-btn">Play Again</button>
+  <!-- Win Screen -->
+  <div id="win-screen" style="display:none;">
+    <h2>🎉 Congratulations! You Won! 🎉</h2>
+    <button onclick="restartGame()">Play Again</button>
+  </div>
+
+  <!-- Lose Screen -->
+  <div id="lose-screen" style="display:none;">
+    <h2>❌ Game Over! Try Again ❌</h2>
+    <button onclick="restartGame()">Retry</button>
   </div>
 
   <script src="script.js"></script>

@@ -1,207 +1,412 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Balloon Pop Game</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    :root { --ui: #222; --brand: #ff4081; }
-    * { box-sizing: border-box; }
-    html,body { height:100%; margin:0; }
-    body {
-      font-family: Arial, sans-serif;
-      background: linear-gradient(180deg, #87ceeb 0%, #ffffff 100%);
-      overflow: hidden;
-    }
-    #gameContainer {
-      position: relative; width: 100vw; height: 100vh; overflow: hidden;
-    }
-    #hud {
-      position: absolute; top: 10px; left: 10px; z-index: 5;
-      background: rgba(255,255,255,.8); padding: 8px 12px; border-radius: 8px;
-      font-weight: bold; color: var(--ui); font-size: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,.12);
-    }
-    #timer { margin-left: 10px; }
-    .overlay {
-      position: absolute; inset: 0; z-index: 10;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      background: rgba(0,0,0,.6); color: #fff; text-align: center; padding: 24px;
-    }
-    .hidden { display: none; }
-    h1 { margin: 0 0 8px; font-size: 32px; }
-    p  { margin: 0 0 16px; font-size: 18px; opacity: .95; }
-    button {
-      padding: 12px 20px; font-size: 18px; border: 0; border-radius: 10px;
-      background: var(--brand); color: #fff; cursor: pointer;
-      box-shadow: 0 6px 16px rgba(255,64,129,.35);
-    }
-    button:hover { filter: brightness(1.05); }
-    .balloon {
-      position: absolute; width: 64px; height: 84px;
-      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-      box-shadow: inset 0 8px 16px rgba(255,255,255,.35), 0 6px 12px rgba(0,0,0,.15);
-      cursor: pointer; transform: translate3d(0,0,0);
-    }
-    .string {
-      position: absolute; left: 50%; top: 78px; width: 2px; height: 28px;
-      background: rgba(0,0,0,.25); transform: translateX(-50%);
-    }
-    .msg { font-size: 22px; margin-top: 6px; }
-  </style>
+<meta charset="UTF-8" />
+<title>Math Balloons 🟣🎈</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root{
+    --bg1:#b3e5fc; --bg2:#ffffff;
+    --ink:#16324f; --accent:#6c5ce7; --good:#2ecc71; --bad:#e74c3c;
+    --panel: rgba(255,255,255,.85);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font-family: system-ui, Arial, sans-serif;
+    color:var(--ink);
+    background: linear-gradient(180deg,var(--bg1),var(--bg2));
+    overflow:hidden;
+  }
+
+  /* HUD */
+  #hud{
+    position:fixed; inset:auto 0 auto 0; top:10px; display:flex; justify-content:center; gap:12px; z-index:5;
+  }
+  .chip{
+    background:var(--panel); backdrop-filter:saturate(120%) blur(6px);
+    padding:8px 12px; border-radius:12px; font-weight:700; box-shadow:0 6px 18px rgba(0,0,0,.12);
+  }
+  #muteBtn{cursor:pointer; border:none; background:var(--panel); border-radius:12px; padding:8px 12px; font-weight:700}
+  #muteBtn:hover{filter:brightness(1.05)}
+
+  /* Screens */
+  .overlay{
+    position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.6); color:#fff; text-align:center; padding:24px; z-index:10;
+  }
+  .card{
+    width:min(720px,92vw); background:#fff; color:var(--ink); border-radius:20px; padding:24px;
+    box-shadow:0 24px 60px rgba(0,0,0,.35);
+  }
+  h1{margin:0 0 8px}
+  .lead{margin:0 0 18px; opacity:.9}
+  .controls{display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:8px}
+  .btn{
+    border:none; border-radius:12px; padding:12px 18px; font-size:16px; font-weight:700; cursor:pointer;
+    background:var(--accent); color:#fff; box-shadow:0 10px 24px rgba(108,92,231,.35);
+  }
+  .btn.secondary{background:#00b894}
+  .btn:hover{filter:brightness(1.05)}
+  .result h2{margin:0 0 8px}
+  .result p{margin:0 0 16px}
+
+  /* Game area */
+  #game{
+    position:fixed; inset:0; overflow:hidden; z-index:1;
+  }
+  #questionBar{
+    position:fixed; top:56px; left:50%; transform:translateX(-50%);
+    background:var(--panel); padding:10px 16px; border-radius:12px; font-size:18px; font-weight:800;
+    box-shadow:0 10px 24px rgba(0,0,0,.12); z-index:3; max-width:95vw;
+  }
+
+  /* Balloons */
+  .balloon{
+    position:absolute; width:82px; height:106px;
+    border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
+    box-shadow: inset 0 10px 18px rgba(255,255,255,.5), 0 12px 22px rgba(0,0,0,.18);
+    display:flex; align-items:center; justify-content:center; font-weight:900; font-size:20px; color:#083;
+    user-select:none; touch-action:none; cursor:pointer; will-change:transform;
+  }
+  .balloon .string{
+    position:absolute; left:50%; top:94px; width:2px; height:30px; transform:translateX(-50%);
+    background:rgba(0,0,0,.25);
+  }
+  .balloon .label{
+    background: rgba(255,255,255,.75); padding:4px 10px; border-radius:10px; box-shadow:0 3px 10px rgba(0,0,0,.12);
+  }
+
+  /* Hearts (lives) */
+  .heart{color:#e63946; margin:0 2px}
+
+  /* Helpers */
+  .hidden{display:none}
+  .pulse{animation:pulse 0.5s}
+  @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+</style>
 </head>
 <body>
-  <div id="gameContainer">
-    <div id="hud">
-      <span id="score">Score: 0</span>
-      <span id="timer">Time: 20s</span>
-    </div>
 
-    <!-- Start Screen -->
-    <div id="startScreen" class="overlay">
-      <h1>🎈 Balloon Pop</h1>
-      <p>Pop as many balloons as you can before time runs out!</p>
-      <button id="startBtn">Start Game</button>
-      <p class="msg">Tip: Works on mobile — just tap the balloons.</p>
-    </div>
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div class="chip" id="scoreChip">Score: 0</div>
+  <div class="chip" id="targetChip">Target: 15</div>
+  <div class="chip" id="timerChip">Time: 45s</div>
+  <div class="chip" id="livesChip">Lives: <span id="lives"></span></div>
+  <button id="muteBtn" aria-label="Toggle sound">🔊 Sound On</button>
+</div>
 
-    <!-- End Screen -->
-    <div id="endScreen" class="overlay hidden">
-      <h1 id="endTitle">Game Over</h1>
-      <p id="finalScore">Your Score: 0</p>
-      <button id="playAgainBtn">Play Again</button>
+<div id="questionBar" class="hidden">What is 3 + 4 ?</div>
+
+<!-- Game stage -->
+<div id="game" aria-label="game stage"></div>
+
+<!-- Start Screen -->
+<div id="startScreen" class="overlay">
+  <div class="card">
+    <h1>🎈 Math Balloons</h1>
+    <p class="lead">Pop the balloon with the <b>correct answer</b> before it reaches the ground.  
+    Earn points, beat the timer, and don’t lose all your lives!</p>
+    <div class="controls">
+      <button class="btn" id="startBtn">Start Game</button>
+      <button class="btn secondary" id="howBtn">How to Play</button>
+    </div>
+    <p style="margin-top:10px;opacity:.85">Tip: Works on mobile — just tap the balloons.</p>
+  </div>
+</div>
+
+<!-- How to screen -->
+<div id="howScreen" class="overlay hidden">
+  <div class="card">
+    <h2>How to Play</h2>
+    <ul style="text-align:left; line-height:1.6">
+      <li>A math question appears at the top.</li>
+      <li>Several balloons fall with different answers.</li>
+      <li>Tap the <b>correct</b> balloon to score +1 and get a new question.</li>
+      <li>Wrong balloon or missing the correct one costs a <b>life</b>.</li>
+      <li>Win by reaching the <b>target score</b> before time runs out!</li>
+    </ul>
+    <div class="controls">
+      <button class="btn" id="backBtn">Back</button>
+      <button class="btn" id="startFromHowBtn">Start Now</button>
     </div>
   </div>
+</div>
 
-  <script>
-    (() => {
-      const container = document.getElementById('gameContainer');
-      const scoreEl   = document.getElementById('score');
-      const timerEl   = document.getElementById('timer');
-      const startUI   = document.getElementById('startScreen');
-      const endUI     = document.getElementById('endScreen');
-      const endTitle  = document.getElementById('endTitle');
-      const finalScore= document.getElementById('finalScore');
-      const startBtn  = document.getElementById('startBtn');
-      const againBtn  = document.getElementById('playAgainBtn');
+<!-- End Screen -->
+<div id="endScreen" class="overlay hidden">
+  <div class="card result">
+    <h2 id="endTitle">Game Over</h2>
+    <p id="finalStats">Score: 0</p>
+    <div class="controls">
+      <button class="btn" id="playAgainBtn">Play Again</button>
+    </div>
+  </div>
+</div>
 
-      let balloons = [];
-      let score = 0;
-      let playing = false;
-      let spawnId = null;
-      let rafId   = null;
-      let timeLeft = 20; // seconds
-      let timerId = null;
+<!-- Audio (royalty-free sources) -->
+<audio id="bgm" src="https://cdn.pixabay.com/download/audio/2021/09/16/audio_0ef4e1d2af.mp3?filename=soft-ambient-110241.mp3" preload="auto" loop></audio>
+<audio id="popSfx" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_1a2e2f3a7d.mp3?filename=pop-94319.mp3" preload="auto"></audio>
+<audio id="okSfx"  src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_1dbe94d885.mp3?filename=correct-2-46134.mp3" preload="auto"></audio>
+<audio id="badSfx" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_6f3cfc7f1b.mp3?filename=error-126627.mp3" preload="auto"></audio>
 
-      const COLORS = ['#ff4d6d','#4dabf7','#38d9a9','#ffd43b','#845ef7','#ff922b','#f06595'];
+<script>
+(function(){
+  const stage = document.getElementById('game');
+  const questionBar = document.getElementById('questionBar');
+  const hud = document.getElementById('hud');
+  const scoreChip = document.getElementById('scoreChip');
+  const targetChip = document.getElementById('targetChip');
+  const timerChip = document.getElementById('timerChip');
+  const livesChip = document.getElementById('livesChip');
+  const livesEl = document.getElementById('lives');
 
-      function random(min,max){ return Math.random()*(max-min)+min; }
+  const startScreen = document.getElementById('startScreen');
+  const howScreen = document.getElementById('howScreen');
+  const endScreen = document.getElementById('endScreen');
+  const endTitle  = document.getElementById('endTitle');
+  const finalStats= document.getElementById('finalStats');
 
-      function makeBalloon() {
-        const b = document.createElement('div');
-        b.className = 'balloon';
-        b.style.left = Math.floor(random(0, container.clientWidth - 64)) + 'px';
-        b.style.top  = container.clientHeight + 'px'; // start just below
-        b.style.background = COLORS[Math.floor(Math.random()*COLORS.length)];
+  const startBtn = document.getElementById('startBtn');
+  const startFromHowBtn = document.getElementById('startFromHowBtn');
+  const howBtn   = document.getElementById('howBtn');
+  const backBtn  = document.getElementById('backBtn');
+  const againBtn = document.getElementById('playAgainBtn');
+  const muteBtn  = document.getElementById('muteBtn');
 
-        const s = document.createElement('div');
-        s.className = 'string';
-        b.appendChild(s);
+  const bgm   = document.getElementById('bgm');
+  const popFx = document.getElementById('popSfx');
+  const okFx  = document.getElementById('okSfx');
+  const badFx = document.getElementById('badSfx');
 
-        // speed in px/sec — increases as time passes (slightly harder)
-        b._vy = random(80, 130) + (20 * (20 - timeLeft));
-        b._y  = container.clientHeight + random(0, 40);
+  // Game settings
+  const TARGET_SCORE = 15;
+  const START_TIME   = 45;   // seconds
+  const START_LIVES  = 3;
+  const SPAWN_MS     = 900;  // how often a balloon spawns
+  const BASE_FALL    = 110;  // px/sec min
+  const EXTRA_FALL   = 140;  // added by difficulty
 
-        b.addEventListener('pointerdown', () => {
-          if(!playing) return;
-          score += 1;
-          scoreEl.textContent = 'Score: ' + score;
-          pop(b);
-        }, {passive:true});
+  let muted = false;
+  let score, timeLeft, lives, playing = false;
+  let spawnId, rafId, timerId;
+  let balloons = [];
+  let currentQuestion = null;
 
-        container.appendChild(b);
-        balloons.push(b);
+  const COLORS = ['#ff6b6b','#4dabf7','#51cf66','#ffd43b','#845ef7','#ffa94d','#22b8cf'];
+
+  function setMuteState(m){
+    muted = m;
+    bgm.muted = popFx.muted = okFx.muted = badFx.muted = muted;
+    muteBtn.textContent = muted ? '🔇 Sound Off' : '🔊 Sound On';
+  }
+  muteBtn.addEventListener('click',()=> setMuteState(!muted));
+
+  function show(el){ el.classList.remove('hidden'); }
+  function hide(el){ el.classList.add('hidden'); }
+
+  function hearts(n){
+    let s='';
+    for(let i=0;i<n;i++) s += '❤️';
+    for(let i=n;i<START_LIVES;i++) s += '🤍';
+    livesEl.innerHTML = s;
+  }
+
+  // Question generator: +, -, ×, ÷ (integer only for ÷)
+  function genQuestion(){
+    const ops = ['+','-','×','÷'];
+    const op = ops[Math.floor(Math.random()*ops.length)];
+    let a,b,ans;
+    if(op === '+'){ a=rand(1,20); b=rand(1,20); ans=a+b; }
+    else if(op === '-'){ a=rand(5,25); b=rand(1,a); ans=a-b; }
+    else if(op === '×'){ a=rand(2,10); b=rand(2,10); ans=a*b; }
+    else { // division integer
+      b = rand(2,10);
+      ans = rand(2,10);
+      a = b * ans; // guarantees integer
+    }
+    const text = `What is ${a} ${op} ${b} ?`;
+    // make choices
+    const choices = new Set([ans]);
+    while(choices.size < 4){
+      let delta = rand(-10,10);
+      let v = Math.max(0, ans + delta + (delta===0?1:0));
+      choices.add(v);
+    }
+    const arr = Array.from(choices).sort(()=>Math.random()-0.5);
+    return {text, ans, choices:arr};
+  }
+
+  function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+  function spawnChoiceBalloon(value, isCorrect){
+    const node = document.createElement('div');
+    node.className = 'balloon';
+    node.style.left = Math.max(8, Math.floor(Math.random()*(stage.clientWidth-90))) + 'px';
+    node.style.top  = '-120px'; // start above the viewport so they fall in
+    node.style.background = COLORS[Math.floor(Math.random()*COLORS.length)];
+    node.dataset.value = value;
+    node.dataset.correct = isCorrect ? '1':'0';
+
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = value;
+    const string = document.createElement('div');
+    string.className = 'string';
+
+    node.appendChild(label);
+    node.appendChild(string);
+    stage.appendChild(node);
+
+    // Physics
+    node._y = -120 - rand(0,40);
+    // fall speed grows as time passes (harder)
+    const difficulty = (START_TIME - timeLeft) / START_TIME; // 0..1
+    node._vy = BASE_FALL + EXTRA_FALL * difficulty + rand(-10, 30); // px/sec
+
+    node.addEventListener('pointerdown', (e)=>{
+      e.preventDefault();
+      if(!playing) return;
+      if(!muted) popFx.currentTime=0, popFx.play();
+
+      const correct = node.dataset.correct === '1';
+      if(correct){
+        score++; scoreChip.textContent = 'Score: ' + score;
+        questionPulse();
+        if(!muted) okFx.currentTime=0, okFx.play();
+        // clear all & next question
+        destroyAllBalloons();
+        nextQuestion();
+      }else{
+        loseLife();
       }
+      node.remove();
+    }, {passive:false});
 
-      function pop(node){
-        // simple pop effect
-        node.style.transition = 'transform .12s ease, opacity .12s ease';
-        node.style.transform = 'scale(1.15)';
-        node.style.opacity = '0.25';
-        setTimeout(() => {
-          node.remove();
-        }, 130);
-        balloons = balloons.filter(x => x !== node);
-      }
+    balloons.push(node);
+  }
 
-      function loop(ts){
-        const dt = 1/60; // approx; ok for a light game
-        for(const b of balloons){
-          b._y -= b._vy * dt;
-          if(b._y < -100) { // off the top
-            b.remove();
-          } else {
-            b.style.transform = `translateY(${b._y - container.clientHeight}px)`;
-          }
+  function questionPulse(){
+    questionBar.classList.add('pulse');
+    setTimeout(()=>questionBar.classList.remove('pulse'), 450);
+  }
+
+  function destroyAllBalloons(){
+    balloons.forEach(b=> b.remove());
+    balloons = [];
+  }
+
+  function nextQuestion(){
+    currentQuestion = genQuestion();
+    questionBar.textContent = currentQuestion.text;
+    // spawn a burst of balloons containing all choices, then let random fill continue
+    currentQuestion.choices.forEach(v => spawnChoiceBalloon(v, v===currentQuestion.ans));
+    // keep spawning decoy balloons too
+  }
+
+  function loop(ts){
+    const dt = 1/60; // ~16ms
+    for(const b of balloons){
+      b._y += b._vy * dt;
+      b.style.transform = `translateY(${b._y}px)`;
+      const y = b._y;
+      if(y > stage.clientHeight + 40){
+        // missed balloon
+        if(b.dataset.correct === '1'){
+          // missed the correct one -> life down
+          loseLife();
+          // and new question
+          destroyAllBalloons();
+          nextQuestion();
         }
-        balloons = balloons.filter(b => b.isConnected);
-        rafId = requestAnimationFrame(loop);
+        b.remove();
       }
+    }
+    balloons = balloons.filter(b => b.isConnected);
+    rafId = requestAnimationFrame(loop);
+  }
 
-      function startGame(){
-        // reset
-        balloons.forEach(b => b.remove());
-        balloons = [];
-        score = 0;
-        timeLeft = 20;
-        scoreEl.textContent = 'Score: ' + score;
-        timerEl.textContent = 'Time: ' + timeLeft + 's';
+  function loseLife(){
+    lives--;
+    if(!muted) badFx.currentTime=0, badFx.play();
+    hearts(lives);
+    if(lives<=0){ end(false); }
+  }
 
-        startUI.classList.add('hidden');
-        endUI.classList.add('hidden');
-        playing = true;
+  function start(){
+    // init state
+    score = 0; timeLeft = START_TIME; lives = START_LIVES; playing = true;
+    scoreChip.textContent = 'Score: 0';
+    targetChip.textContent = 'Target: ' + TARGET_SCORE;
+    timerChip.textContent = 'Time: ' + timeLeft + 's';
+    hearts(lives);
 
-        // spawn balloons regularly
-        spawnId = setInterval(makeBalloon, 700);
-        rafId = requestAnimationFrame(loop);
+    hide(startScreen); hide(howScreen); hide(endScreen);
+    show(hud); show(questionBar);
 
-        timerId = setInterval(() => {
-          timeLeft--;
-          timerEl.textContent = 'Time: ' + timeLeft + 's';
-          if(timeLeft <= 0){
-            endGame();
-          }
-        }, 1000);
+    destroyAllBalloons();
+    nextQuestion();
+
+    // background music (allowed after user interaction)
+    try{ bgm.currentTime = 0; if(!muted) bgm.play(); }catch(e){/* ignore */ }
+
+    // spawn stream
+    clearInterval(spawnId);
+    spawnId = setInterval(()=>{
+      // spawn some distractors + ensure 1 correct appears frequently
+      const sprinkle = Math.random() < 0.35; // occasional extra
+      const decoyVal = currentQuestion ? currentQuestion.ans + rand(-10,10) : rand(1,50);
+      spawnChoiceBalloon(decoyVal, false);
+      if(sprinkle) spawnChoiceBalloon(rand(0,40), false);
+      // also ensure a correct balloon appears often
+      if(Math.random() < 0.45 && currentQuestion){
+        spawnChoiceBalloon(currentQuestion.ans, true);
       }
+    }, SPAWN_MS);
 
-      function endGame(){
-        playing = false;
-        clearInterval(spawnId);
-        clearInterval(timerId);
-        cancelAnimationFrame(rafId);
-        // cleanup leftovers
-        balloons.forEach(b => b.remove());
-        balloons = [];
+    cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(loop);
 
-        endTitle.textContent = (score >= 15) ? '🎉 You Win!' : '😢 Game Over';
-        finalScore.textContent = 'Your Score: ' + score;
-        endUI.classList.remove('hidden');
-      }
+    clearInterval(timerId);
+    timerId = setInterval(()=>{
+      timeLeft--;
+      timerChip.textContent = 'Time: ' + timeLeft + 's';
+      if(timeLeft<=0){ end(score >= TARGET_SCORE); }
+    }, 1000);
+  }
 
-      // Bind once DOM is ready
-      startBtn.addEventListener('click', startGame);
-      againBtn.addEventListener('click', startGame);
+  function end(win){
+    playing = false;
+    clearInterval(spawnId);
+    clearInterval(timerId);
+    cancelAnimationFrame(rafId);
+    destroyAllBalloons();
+    hide(hud); hide(questionBar);
+    endTitle.textContent = win ? '🏆 You Win!' : '😢 Game Over';
+    finalStats.textContent = `Score: ${score} / ${TARGET_SCORE}  •  Time: ${START_TIME - timeLeft}s  •  Lives left: ${Math.max(0,lives)}`;
+    show(endScreen);
+    try{ bgm.pause(); }catch(e){}
+  }
 
-      // Resize safety: keep balloons in bounds
-      window.addEventListener('resize', () => {
-        balloons.forEach(b => {
-          const x = parseFloat(b.style.left);
-          if(x > container.clientWidth - 64){
-            b.style.left = Math.max(0, container.clientWidth - 64) + 'px';
-          }
-        });
-      });
-    })();
-  </script>
+  // Buttons
+  startBtn.addEventListener('click', ()=>{ setMuteState(false); start(); });
+  howBtn.addEventListener('click', ()=>{ hide(startScreen); show(howScreen); });
+  backBtn.addEventListener('click', ()=>{ hide(howScreen); show(startScreen); });
+  startFromHowBtn.addEventListener('click', ()=>{ hide(howScreen); start(); });
+  againBtn.addEventListener('click', ()=> start());
+
+  // Keep balloons in bounds on resize
+  window.addEventListener('resize', ()=>{
+    balloons.forEach(b=>{
+      const x = parseFloat(b.style.left)||0;
+      if(x > stage.clientWidth - 90){ b.style.left = Math.max(8, stage.clientWidth-90) + 'px'; }
+    });
+  });
+
+  // Start muted by default on iOS/Android — user can unmute
+  setMuteState(false);
+})();
+</script>
 </body>
 </html>

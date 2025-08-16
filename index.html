@@ -2,174 +2,38 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Math Game</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      text-align: center;
-      background: #f2f2f2;
-    }
-    .screen {
-      display: none;
-      padding: 40px;
-    }
-    .active {
-      display: block;
-    }
-    h1 {
-      font-size: 2em;
-      color: #333;
-    }
-    button {
-      padding: 10px 20px;
-      margin: 15px;
-      border: none;
-      border-radius: 8px;
-      background: #4CAF50;
-      color: white;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #45a049;
-    }
-    .win {
-      background: #d4edda;
-      color: #155724;
-    }
-    .lose {
-      background: #f8d7da;
-      color: #721c24;
-    }
-    #status {
-      margin-top: 20px;
-      font-size: 18px;
-      color: #444;
-    }
-    #timer {
-      font-size: 22px;
-      margin: 20px 0;
-      font-weight: bold;
-      color: #e63946;
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Math Challenge Game</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-  <!-- شاشة المقدمة -->
-  <div id="intro" class="screen active">
-    <h1>🎮 أهلاً بك في لعبة الرياضيات</h1>
-    <p>اختبر ذكاءك وحل التحديات الرياضية 🚀</p>
-    <button onclick="startGame()">ابدأ اللعب</button>
+  <!-- Start Screen -->
+  <div id="start-screen">
+    <h1>Welcome to Math Challenge!</h1>
+    <p>Test your brain with fun math questions 🎯</p>
+    <button onclick="startGame()">Start Game</button>
   </div>
 
-  <!-- شاشة اللعب -->
-  <div id="game" class="screen">
-    <h1>حل هذه المسألة:</h1>
+  <!-- Game Screen -->
+  <div id="game" style="display:none;">
+    <h2>Solve the Question:</h2>
     <p id="question"></p>
-    <input type="number" id="answer" placeholder="أدخل الإجابة">
-    <button onclick="checkAnswer()">تحقق</button>
-    <p id="feedback"></p>
-    <p id="status"></p>
-    <p id="timer">⏳ الوقت: 15 ثانية</p>
+    <input type="text" id="answer" placeholder="Your answer">
+    <button onclick="checkAnswer()">Submit</button>
   </div>
 
-  <!-- شاشة الفوز -->
-  <div id="win" class="screen win">
-    <h1>🎉 أحسنت! ربحت!</h1>
-    <p>لقد انتقلت إلى المستوى التالي 👏</p>
-    <button onclick="nextLevel()">المستوى التالي</button>
+  <!-- Win Screen -->
+  <div id="win-screen" style="display:none;">
+    <h2>🎉 Congratulations! You Won! 🎉</h2>
+    <button onclick="restartGame()">Play Again</button>
   </div>
 
-  <!-- شاشة الخسارة -->
-  <div id="lose" class="screen lose">
-    <h1>😢 خسرت!</h1>
-    <p>لا بأس، حاول مرة أخرى! 💪</p>
-    <button onclick="retryLevel()">إعادة المحاولة</button>
+  <!-- Lose Screen -->
+  <div id="lose-screen" style="display:none;">
+    <h2>❌ Game Over! Try Again ❌</h2>
+    <button onclick="restartGame()">Retry</button>
   </div>
 
-  <!-- ملفات الصوت -->
-  <audio id="winSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_1dbe94d885.mp3"></audio>
-  <audio id="loseSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_6f3cfc7f1b.mp3"></audio>
-  <audio id="tickSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_2c63180e8a.mp3"></audio>
-
-  <script>
-    let correctAnswer;
-    let level = 1;
-    let score = 0;
-    let timeLeft = 15;
-    let timerInterval;
-
-    function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-    }
-
-    function startGame() {
-      level = 1;
-      score = 0;
-      showScreen("game");
-      generateQuestion();
-    }
-
-    function generateQuestion() {
-      let max = level * 10;
-      let a = Math.floor(Math.random() * max) + 1;
-      let b = Math.floor(Math.random() * max) + 1;
-      correctAnswer = a + b;
-      document.getElementById("question").innerText = `${a} + ${b} = ?`;
-      document.getElementById("answer").value = "";
-      document.getElementById("feedback").innerText = "";
-      document.getElementById("status").innerText = `🎯 المستوى: ${level} | ⭐ النقاط: ${score}`;
-      
-      // إعادة ضبط المؤقت
-      timeLeft = 15;
-      document.getElementById("timer").innerText = `⏳ الوقت: ${timeLeft} ثانية`;
-      clearInterval(timerInterval);
-      timerInterval = setInterval(updateTimer, 1000);
-    }
-
-    function updateTimer() {
-      timeLeft--;
-      document.getElementById("timer").innerText = `⏳ الوقت: ${timeLeft} ثانية`;
-      
-      // تشغيل صوت التيك عند العد
-      if (timeLeft > 0) {
-        document.getElementById("tickSound").play();
-      }
-      
-      if (timeLeft <= 0) {
-        clearInterval(timerInterval);
-        document.getElementById("loseSound").play();
-        showScreen("lose");
-      }
-    }
-
-    function checkAnswer() {
-      let userAnswer = parseInt(document.getElementById("answer").value);
-      clearInterval(timerInterval);
-      if (userAnswer === correctAnswer) {
-        score += 10;
-        document.getElementById("winSound").play();
-        showScreen("win");
-      } else {
-        document.getElementById("loseSound").play();
-        showScreen("lose");
-      }
-    }
-
-    function nextLevel() {
-      level++;
-      showScreen("game");
-      generateQuestion();
-    }
-
-    function retryLevel() {
-      showScreen("game");
-      generateQuestion();
-    }
-  </script>
-
+  <script src="script.js"></script>
 </body>
 </html>

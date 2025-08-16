@@ -1,45 +1,31 @@
 body {
-  text-align: center;
   font-family: Arial, sans-serif;
-  background: #f0f8ff;
+  text-align: center;
+  background: #f4f4f9;
+  color: #333;
   margin: 0;
   padding: 0;
 }
 
-.screen {
-  display: none;
-  padding: 20px;
-}
-
-.screen.active {
-  display: block;
-}
-
-.hidden {
-  display: none;
-}
-
 h1, h2 {
-  color: #333;
+  color: #2c3e50;
 }
 
 button {
   padding: 10px 20px;
-  font-size: 18px;
-  margin: 10px;
+  margin-top: 15px;
+  background: #3498db;
   border: none;
-  border-radius: 8px;
-  background: #4CAF50;
   color: white;
+  font-size: 16px;
   cursor: pointer;
+  border-radius: 5px;
 }
 
 button:hover {
-  background: #45a049;
+  background: #2980b9;
 }
 
-#gameCanvas {
-  border: 2px solid #333;
-  background: #e6f7ff;
-  margin-top: 15px;
+#start-screen, #game, #win-screen, #lose-screen {
+  margin-top: 100px;
 }

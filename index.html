@@ -1,140 +1,207 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Balloon Pop Game</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
+    :root { --ui: #222; --brand: #ff4081; }
+    * { box-sizing: border-box; }
+    html,body { height:100%; margin:0; }
     body {
-      margin: 0;
-      padding: 0;
-      overflow: hidden;
       font-family: Arial, sans-serif;
-      background: linear-gradient(to top, #87ceeb, #ffffff);
-    }
-
-    #gameContainer {
-      position: relative;
-      width: 100vw;
-      height: 100vh;
+      background: linear-gradient(180deg, #87ceeb 0%, #ffffff 100%);
       overflow: hidden;
     }
-
-    .balloon {
-      position: absolute;
-      width: 60px;
-      height: 80px;
-      background: red;
-      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
-      cursor: pointer;
+    #gameContainer {
+      position: relative; width: 100vw; height: 100vh; overflow: hidden;
     }
-
-    #startScreen, #endScreen {
-      position: absolute;
-      top: 0; left: 0;
-      width: 100%; height: 100%;
-      background: rgba(0,0,0,0.7);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      color: white;
-      font-size: 24px;
-      z-index: 10;
+    #hud {
+      position: absolute; top: 10px; left: 10px; z-index: 5;
+      background: rgba(255,255,255,.8); padding: 8px 12px; border-radius: 8px;
+      font-weight: bold; color: var(--ui); font-size: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.12);
     }
-
+    #timer { margin-left: 10px; }
+    .overlay {
+      position: absolute; inset: 0; z-index: 10;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      background: rgba(0,0,0,.6); color: #fff; text-align: center; padding: 24px;
+    }
+    .hidden { display: none; }
+    h1 { margin: 0 0 8px; font-size: 32px; }
+    p  { margin: 0 0 16px; font-size: 18px; opacity: .95; }
     button {
-      padding: 10px 20px;
-      margin-top: 20px;
-      font-size: 20px;
-      border: none;
-      border-radius: 10px;
-      background: #ff4081;
-      color: white;
-      cursor: pointer;
+      padding: 12px 20px; font-size: 18px; border: 0; border-radius: 10px;
+      background: var(--brand); color: #fff; cursor: pointer;
+      box-shadow: 0 6px 16px rgba(255,64,129,.35);
     }
-
-    #scoreBoard {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      font-size: 24px;
-      color: #333;
-      font-weight: bold;
+    button:hover { filter: brightness(1.05); }
+    .balloon {
+      position: absolute; width: 64px; height: 84px;
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      box-shadow: inset 0 8px 16px rgba(255,255,255,.35), 0 6px 12px rgba(0,0,0,.15);
+      cursor: pointer; transform: translate3d(0,0,0);
     }
+    .string {
+      position: absolute; left: 50%; top: 78px; width: 2px; height: 28px;
+      background: rgba(0,0,0,.25); transform: translateX(-50%);
+    }
+    .msg { font-size: 22px; margin-top: 6px; }
   </style>
 </head>
 <body>
   <div id="gameContainer">
-    <div id="scoreBoard">Score: 0</div>
-    <div id="startScreen">
-      <h1>🎈 Welcome to Balloon Pop 🎈</h1>
-      <p>Click the balloons to pop them before time runs out!</p>
-      <button onclick="startGame()">Start Game</button>
+    <div id="hud">
+      <span id="score">Score: 0</span>
+      <span id="timer">Time: 20s</span>
     </div>
-    <div id="endScreen" style="display: none;">
-      <h1 id="endMessage"></h1>
-      <p id="finalScore"></p>
-      <button onclick="startGame()">Play Again</button>
+
+    <!-- Start Screen -->
+    <div id="startScreen" class="overlay">
+      <h1>🎈 Balloon Pop</h1>
+      <p>Pop as many balloons as you can before time runs out!</p>
+      <button id="startBtn">Start Game</button>
+      <p class="msg">Tip: Works on mobile — just tap the balloons.</p>
+    </div>
+
+    <!-- End Screen -->
+    <div id="endScreen" class="overlay hidden">
+      <h1 id="endTitle">Game Over</h1>
+      <p id="finalScore">Your Score: 0</p>
+      <button id="playAgainBtn">Play Again</button>
     </div>
   </div>
 
   <script>
-    const gameContainer = document.getElementById("gameContainer");
-    const scoreBoard = document.getElementById("scoreBoard");
-    const startScreen = document.getElementById("startScreen");
-    const endScreen = document.getElementById("endScreen");
-    const endMessage = document.getElementById("endMessage");
-    const finalScore = document.getElementById("finalScore");
+    (() => {
+      const container = document.getElementById('gameContainer');
+      const scoreEl   = document.getElementById('score');
+      const timerEl   = document.getElementById('timer');
+      const startUI   = document.getElementById('startScreen');
+      const endUI     = document.getElementById('endScreen');
+      const endTitle  = document.getElementById('endTitle');
+      const finalScore= document.getElementById('finalScore');
+      const startBtn  = document.getElementById('startBtn');
+      const againBtn  = document.getElementById('playAgainBtn');
 
-    let score = 0;
-    let gameInterval;
-    let gameDuration = 20000; // 20 seconds
+      let balloons = [];
+      let score = 0;
+      let playing = false;
+      let spawnId = null;
+      let rafId   = null;
+      let timeLeft = 20; // seconds
+      let timerId = null;
 
-    function randomColor() {
-      const colors = ["red", "blue", "green", "yellow", "purple", "orange", "pink"];
-      return colors[Math.floor(Math.random() * colors.length)];
-    }
+      const COLORS = ['#ff4d6d','#4dabf7','#38d9a9','#ffd43b','#845ef7','#ff922b','#f06595'];
 
-    function createBalloon() {
-      const balloon = document.createElement("div");
-      balloon.classList.add("balloon");
-      balloon.style.left = Math.random() * (window.innerWidth - 60) + "px";
-      balloon.style.background = randomColor();
-      balloon.style.bottom = "0px";
+      function random(min,max){ return Math.random()*(max-min)+min; }
 
-      balloon.addEventListener("click", () => {
-        score++;
-        scoreBoard.innerText = "Score: " + score;
-        balloon.remove();
-      });
+      function makeBalloon() {
+        const b = document.createElement('div');
+        b.className = 'balloon';
+        b.style.left = Math.floor(random(0, container.clientWidth - 64)) + 'px';
+        b.style.top  = container.clientHeight + 'px'; // start just below
+        b.style.background = COLORS[Math.floor(Math.random()*COLORS.length)];
 
-      gameContainer.appendChild(balloon);
+        const s = document.createElement('div');
+        s.className = 'string';
+        b.appendChild(s);
 
-      let moveInterval = setInterval(() => {
-        let bottom = parseInt(balloon.style.bottom);
-        if (bottom > window.innerHeight) {
-          balloon.remove();
-          clearInterval(moveInterval);
-        } else {
-          balloon.style.bottom = bottom + 2 + "px";
+        // speed in px/sec — increases as time passes (slightly harder)
+        b._vy = random(80, 130) + (20 * (20 - timeLeft));
+        b._y  = container.clientHeight + random(0, 40);
+
+        b.addEventListener('pointerdown', () => {
+          if(!playing) return;
+          score += 1;
+          scoreEl.textContent = 'Score: ' + score;
+          pop(b);
+        }, {passive:true});
+
+        container.appendChild(b);
+        balloons.push(b);
+      }
+
+      function pop(node){
+        // simple pop effect
+        node.style.transition = 'transform .12s ease, opacity .12s ease';
+        node.style.transform = 'scale(1.15)';
+        node.style.opacity = '0.25';
+        setTimeout(() => {
+          node.remove();
+        }, 130);
+        balloons = balloons.filter(x => x !== node);
+      }
+
+      function loop(ts){
+        const dt = 1/60; // approx; ok for a light game
+        for(const b of balloons){
+          b._y -= b._vy * dt;
+          if(b._y < -100) { // off the top
+            b.remove();
+          } else {
+            b.style.transform = `translateY(${b._y - container.clientHeight}px)`;
+          }
         }
-      }, 20);
-    }
+        balloons = balloons.filter(b => b.isConnected);
+        rafId = requestAnimationFrame(loop);
+      }
 
-    function startGame() {
-      score = 0;
-      scoreBoard.innerText = "Score: " + score;
-      startScreen.style.display = "none";
-      endScreen.style.display = "none";
+      function startGame(){
+        // reset
+        balloons.forEach(b => b.remove());
+        balloons = [];
+        score = 0;
+        timeLeft = 20;
+        scoreEl.textContent = 'Score: ' + score;
+        timerEl.textContent = 'Time: ' + timeLeft + 's';
 
-      gameInterval = setInterval(createBalloon, 800);
+        startUI.classList.add('hidden');
+        endUI.classList.add('hidden');
+        playing = true;
 
-      setTimeout(endGame, gameDuration);
-    }
+        // spawn balloons regularly
+        spawnId = setInterval(makeBalloon, 700);
+        rafId = requestAnimationFrame(loop);
 
-    function endGame() {
-      clearInterval(gameInterval);
-      document.querySelectorAll(".balloon").forEach(b => b.remove());
+        timerId = setInterval(() => {
+          timeLeft--;
+          timerEl.textContent = 'Time: ' + timeLeft + 's';
+          if(timeLeft <= 0){
+            endGame();
+          }
+        }, 1000);
+      }
 
-      if (score >= 15) {
-        endMessage.innerText = "🎉 You Win! 🎉";
+      function endGame(){
+        playing = false;
+        clearInterval(spawnId);
+        clearInterval(timerId);
+        cancelAnimationFrame(rafId);
+        // cleanup leftovers
+        balloons.forEach(b => b.remove());
+        balloons = [];
+
+        endTitle.textContent = (score >= 15) ? '🎉 You Win!' : '😢 Game Over';
+        finalScore.textContent = 'Your Score: ' + score;
+        endUI.classList.remove('hidden');
+      }
+
+      // Bind once DOM is ready
+      startBtn.addEventListener('click', startGame);
+      againBtn.addEventListener('click', startGame);
+
+      // Resize safety: keep balloons in bounds
+      window.addEventListener('resize', () => {
+        balloons.forEach(b => {
+          const x = parseFloat(b.style.left);
+          if(x > container.clientWidth - 64){
+            b.style.left = Math.max(0, container.clientWidth - 64) + 'px';
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>

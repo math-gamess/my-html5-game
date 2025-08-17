@@ -1,257 +1,440 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Math Balloon Game</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Comic Sans MS', cursive, sans-serif;
-      text-align: center;
-      background: url('https://i.ibb.co/3sFrd0s/cartoon-background.jpg') no-repeat center center fixed;
-      background-size: cover;
-      overflow: hidden;
-    }
-    #gameContainer {
-      position: relative;
-      width: 100%;
-      height: 100vh;
-      overflow: hidden;
-    }
-    .balloon {
-      position: absolute;
-      width: 80px;
-      height: 100px;
-      background: radial-gradient(circle at 30% 30%, #ff6666, #cc0000);
-      border-radius: 50% 50% 45% 55%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 24px;
-      font-weight: bold;
-      box-shadow: 0px 4px 8px rgba(0,0,0,0.2);
-    }
-    #hud {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(255,255,255,0.8);
-      padding: 10px 20px;
-      border-radius: 15px;
-      display: flex;
-      gap: 20px;
-      font-size: 20px;
-      font-weight: bold;
-    }
-    #question {
-      position: absolute;
-      top: 70px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 28px;
-      font-weight: bold;
-      background: rgba(255,255,255,0.8);
-      padding: 10px 20px;
-      border-radius: 15px;
-    }
-    #message {
-      position: absolute;
-      top: 40%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 40px;
-      font-weight: bold;
-      color: #fff;
-      text-shadow: 2px 2px 5px #000;
-      display: none;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 20px;
-      border: none;
-      border-radius: 12px;
-      background: #4CAF50;
-      color: white;
-      cursor: pointer;
-      margin-top: 20px;
-    }
-    button:hover { background: #45a049; }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Math Balloons 🎈</title>
+<style>
+  :root{
+    --sky1:#8fd3fe; --sky2:#eaf9ff; --ink:#16324f; --panel:rgba(255,255,255,.85);
+    --accent:#6c5ce7; --good:#2ecc71; --bad:#e74c3c;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{font-family:system-ui, Arial, sans-serif; color:var(--ink); overflow:hidden;}
+
+  /* Cartoon background (pure CSS) */
+  #sky{position:fixed; inset:0; background:linear-gradient(180deg,var(--sky1),var(--sky2)); z-index:0; overflow:hidden; pointer-events:none;}
+  .sun{position:absolute; right:8vw; top:8vh; width:120px; height:120px; background:radial-gradient(circle at 30% 30%, #fff59d, #f4d03f); border-radius:50%; filter:blur(0.3px); box-shadow:0 0 80px rgba(244,208,63,.7);}
+  .hill{position:absolute; bottom:-10vh; width:160vw; height:45vh; left:-30vw; background:radial-gradient(circle at 50% 20%,#7cd67c,#47c147); border-radius:50%; filter:drop-shadow(0 -6px 24px rgba(0,0,0,.15));}
+  .hill.h2{left:-10vw; width:170vw; height:35vh; bottom:-12vh; background:radial-gradient(circle at 50% 20%,#91e091,#5fd45f);}
+  .cloud{position:absolute; width:200px; height:70px; background:#fff; border-radius:60px; filter:drop-shadow(0 10px 14px rgba(0,0,0,.12)); opacity:.95; animation:drift linear infinite;}
+  .cloud:before,.cloud:after{content:""; position:absolute; background:#fff; border-radius:50%;}
+  .cloud:before{width:110px; height:110px; left:20px; top:-45px}
+  .cloud:after{width:140px; height:140px; left:80px; top:-65px}
+  .c1{top:12%; left:-260px; animation-duration:70s}
+  .c2{top:28%; left:-300px; animation-duration:90s; transform:scale(1.1)}
+  .c3{top:46%; left:-240px; animation-duration:80s; transform:scale(.9)}
+  .c4{top:65%; left:-320px; animation-duration:95s; transform:scale(1.15)}
+  @keyframes drift{from{transform:translateX(-260px)} to{transform:translateX(calc(100vw + 260px))}}
+
+  /* HUD */
+  #hud{position:fixed; top:10px; left:50%; transform:translateX(-50%); display:flex; gap:10px; z-index:5; flex-wrap:wrap; justify-content:center}
+  .chip{background:var(--panel); padding:8px 12px; border-radius:12px; font-weight:800; box-shadow:0 6px 18px rgba(0,0,0,.12)}
+  #progressBar{width:160px; height:12px; background:rgba(0,0,0,.08); border-radius:999px; overflow:hidden}
+  #progressFill{height:100%; width:0%; background:linear-gradient(90deg,#00c853,#b2ff59)}
+
+  /* Question */
+  #questionBar{position:fixed; top:58px; left:50%; transform:translateX(-50%); background:var(--panel);
+    padding:10px 16px; border-radius:12px; font-size:18px; font-weight:900; box-shadow:0 10px 24px rgba(0,0,0,.12); z-index:5; max-width:95vw}
+
+  /* Game stage */
+  #stage{position:fixed; inset:0; z-index:1; overflow:hidden}
+
+  /* Balloons */
+  .balloon{position:absolute; width:88px; height:112px; border-radius:50% 50% 45% 55% / 60% 60% 40% 40%;
+    display:flex; align-items:center; justify-content:center; font-weight:900; font-size:22px; color:#083; user-select:none; cursor:pointer;
+    box-shadow: inset 0 12px 18px rgba(255,255,255,.6), 0 14px 24px rgba(0,0,0,.18); will-change:transform, top}
+  .string{position:absolute; left:50%; top:98px; width:2px; height:34px; transform:translateX(-50%); background:rgba(0,0,0,.28)}
+  .label{background:rgba(255,255,255,.8); padding:4px 10px; border-radius:10px; box-shadow:0 3px 10px rgba(0,0,0,.12)}
+
+  /* Screens */
+  .overlay{position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:rgba(0,0,0,.6); color:#fff; z-index:10; padding:24px; text-align:center}
+  .card{width:min(720px,92vw); background:#fff; color:var(--ink); border-radius:20px; padding:24px; box-shadow:0 24px 60px rgba(0,0,0,.35)}
+  .btn{border:none; border-radius:12px; padding:12px 18px; font-size:16px; font-weight:800; cursor:pointer; background:var(--accent); color:#fff; box-shadow:0 10px 24px rgba(108,92,231,.35)}
+  .btn.secondary{background:#00b894}
+  .btn:hover{filter:brightness(1.05)}
+  .hidden{display:none}
+  .pulse{animation:pulse .5s}
+  @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+
+  /* Confetti */
+  .confetti{position:fixed; top:-10vh; font-size:24px; z-index:20; animation:fall 3s linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(540deg); opacity:0.9}}
+  @media (max-width:520px){
+    .balloon{width:76px; height:98px; font-size:20px}
+    .string{top:86px}
+  }
+</style>
 </head>
 <body>
-  <div id="gameContainer">
-    <div id="hud">
-      <div>❤️ Lives: <span id="lives">3</span></div>
-      <div>⭐ Score: <span id="score">0</span></div>
-      <div>🎮 Level: <span id="level">1</span></div>
-      <div>⏳ Time: <span id="time">30</span>s</div>
+
+<!-- Background -->
+<div id="sky">
+  <div class="sun"></div>
+  <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div><div class="cloud c4"></div>
+  <div class="hill"></div><div class="hill h2"></div>
+</div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div class="chip">⭐ Score: <span id="score">0</span></div>
+  <div class="chip">🎮 Level: <span id="level">1</span></div>
+  <div class="chip">❤️ Lives: <span id="lives">3</span></div>
+  <div class="chip">⏳ Time: <span id="time">30</span>s</div>
+  <div class="chip" id="progressBar"><div id="progressFill"></div></div>
+  <button id="muteBtn" class="chip" aria-label="toggle sound">🔊 Sound On</button>
+</div>
+
+<div id="questionBar" class="hidden">What is 1 + 1 ?</div>
+
+<!-- Stage -->
+<div id="stage" aria-label="game stage"></div>
+
+<!-- Start -->
+<div id="startScreen" class="overlay">
+  <div class="card">
+    <h1>🎈 Math Balloons</h1>
+    <p style="opacity:.9">Pop the balloon with the <b>correct answer</b> before it reaches the ground.  
+    Clear <b>5 questions</b> to level up. You have <b>3 lives</b> and <b>30s</b> per level.</p>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:8px">
+      <button class="btn" id="startBtn">Start Game</button>
+      <button class="btn secondary" id="howBtn">How to Play</button>
     </div>
-    <div id="question">Press Start to Begin</div>
-    <div id="message"></div>
-    <button id="startBtn">Start Game</button>
   </div>
+</div>
 
-  <audio id="bgMusic" loop>
-    <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
-  </audio>
+<!-- How to -->
+<div id="howScreen" class="overlay hidden">
+  <div class="card">
+    <h2>How to Play</h2>
+    <ul style="text-align:left;line-height:1.6;margin:0 0 10px">
+      <li>Levels 1–3: Addition only.</li>
+      <li>Levels 4–6: Subtraction only.</li>
+      <li>Levels 7–9: Division only (whole numbers).</li>
+      <li>Level 10+: Mixed (+, −, ÷).</li>
+      <li>Get 5 correct answers to level up. Wrong or miss = lose a life.</li>
+      <li>Time per level is 30s. If it hits 0, you lose a life.</li>
+    </ul>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn" id="backBtn">Back</button>
+      <button class="btn" id="startFromHowBtn">Start Now</button>
+    </div>
+  </div>
+</div>
 
-  <script>
-    const startBtn = document.getElementById('startBtn');
-    const question = document.getElementById('question');
-    const message = document.getElementById('message');
-    const scoreDisplay = document.getElementById('score');
-    const livesDisplay = document.getElementById('lives');
-    const levelDisplay = document.getElementById('level');
-    const timeDisplay = document.getElementById('time');
-    const gameContainer = document.getElementById('gameContainer');
-    const bgMusic = document.getElementById('bgMusic');
+<!-- End -->
+<div id="endScreen" class="overlay hidden">
+  <div class="card">
+    <h2 id="endTitle">Game Over</h2>
+    <p id="finalStats">Score: 0</p>
+    <div style="display:flex;gap:10px;justify-content:center">
+      <button class="btn" id="playAgainBtn">Play Again</button>
+    </div>
+  </div>
+</div>
 
-    let score = 0;
-    let lives = 3;
-    let level = 1;
-    let time = 30;
-    let correctAnswer;
-    let timer;
+<!-- Audio (light, safe) -->
+<audio id="popSfx" preload="auto" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_1a2e2f3a7d.mp3?filename=pop-94319.mp3"></audio>
+<audio id="okSfx"  preload="auto" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_1dbe94d885.mp3?filename=correct-2-46134.mp3"></audio>
+<audio id="badSfx" preload="auto" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_6f3cfc7f1b.mp3?filename=error-126627.mp3"></audio>
 
-    function startGame(){
-      score = 0; lives = 3; level = 1; time = 30;
-      scoreDisplay.textContent = score;
-      livesDisplay.textContent = lives;
-      levelDisplay.textContent = level;
-      timeDisplay.textContent = time;
-      startBtn.style.display = 'none';
-      bgMusic.play();
-      startTimer();
-      newQuestion();
+<script>
+(function(){
+  const stage = document.getElementById('stage');
+  const questionBar = document.getElementById('questionBar');
+  const hud = document.getElementById('hud');
+  const scoreEl = document.getElementById('score');
+  const levelEl = document.getElementById('level');
+  const livesEl = document.getElementById('lives');
+  const timeEl  = document.getElementById('time');
+  const progFill= document.getElementById('progressFill');
+
+  const startScreen = document.getElementById('startScreen');
+  const howScreen   = document.getElementById('howScreen');
+  const endScreen   = document.getElementById('endScreen');
+  const endTitle    = document.getElementById('endTitle');
+  const finalStats  = document.getElementById('finalStats');
+
+  const startBtn = document.getElementById('startBtn');
+  const startFromHowBtn = document.getElementById('startFromHowBtn');
+  const howBtn = document.getElementById('howBtn');
+  const backBtn= document.getElementById('backBtn');
+  const againBtn=document.getElementById('playAgainBtn');
+  const muteBtn = document.getElementById('muteBtn');
+
+  const popFx = document.getElementById('popSfx');
+  const okFx  = document.getElementById('okSfx');
+  const badFx = document.getElementById('badSfx');
+
+  // Game config
+  const GOAL_PER_LEVEL = 5;      // correct to pass level
+  const TIME_PER_LEVEL = 30;     // seconds
+  const BASE_FALL = 90;          // px/sec
+  const FALL_PER_LEVEL = 18;     // added per level
+  const SPAWN_BASE_MS = 1100;    // ms between spawns
+  const SPAWN_LVL_STEP= 60;      // faster per level
+  const COLORS = ['#ff6b6b','#4dabf7','#51cf66','#ffd43b','#845ef7','#ffa94d','#22b8cf','#f06595'];
+
+  let score=0, level=1, lives=3, timeLeft=TIME_PER_LEVEL;
+  let correctInLevel=0, playing=false, muted=false;
+  let spawnId=null, timerId=null, rafId=null;
+  let balloons=[], currentQuestion=null;
+
+  function setMute(v){
+    muted=v;
+    [popFx,okFx,badFx].forEach(a=> a.muted=muted);
+    muteBtn.textContent = muted ? '🔇 Sound Off' : '🔊 Sound On';
+  }
+  muteBtn.addEventListener('click', ()=>setMute(!muted));
+
+  function show(el){ el.classList.remove('hidden'); }
+  function hide(el){ el.classList.add('hidden'); }
+
+  function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
+  function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+  function opForLevel(lvl){
+    if(lvl<=3) return '+';
+    if(lvl<=6) return '-';
+    if(lvl<=9) return '÷';
+    const ops=['+','-','÷']; return ops[Math.floor(Math.random()*ops.length)];
+  }
+
+  function genQuestion(lvl){
+    const op = opForLevel(lvl);
+    let a,b,ans;
+    if(op==='+'){
+      const ranges=[[0,5],[0,10],[2,12]];
+      const r = ranges[clamp(lvl,1,3)-1];
+      a=rand(r[0],r[1]); b=rand(r[0],r[1]); ans=a+b;
+    }else if(op==='-'){
+      const ranges=[[5,12],[8,15],[10,18]];
+      const idx = clamp(lvl-3,1,3)-1;
+      a=rand(ranges[idx][0], ranges[idx][1]); b=rand(0,a); ans=a-b;
+    }else{ // division integer
+      const sets=[
+        {b:[2,5], q:[1,5]},
+        {b:[2,8], q:[1,8]},
+        {b:[2,10],q:[1,10]}
+      ];
+      const idx = clamp(lvl-6,1,3)-1;
+      b=rand(sets[idx].b[0], sets[idx].b[1]);
+      ans=rand(sets[idx].q[0], sets[idx].q[1]);
+      a=b*ans;
     }
+    // choices
+    const text = `What is ${a} ${op} ${b} ?`;
+    const choices = new Set([ans]);
+    while(choices.size<4){
+      let delta = rand(-8,8);
+      if(delta===0) delta=1;
+      let v = Math.max(0, ans+delta);
+      choices.add(v);
+    }
+    const arr = Array.from(choices).sort(()=>Math.random()-0.5);
+    return {text, ans, choices:arr};
+  }
 
-    function startTimer(){
-      timer = setInterval(()=>{
-        time--;
-        timeDisplay.textContent = time;
-        if(time <= 0){
-          loseLife();
+  function updateHUD(){
+    scoreEl.textContent = score;
+    levelEl.textContent = level;
+    livesEl.textContent = lives;
+    timeEl.textContent  = timeLeft;
+    progFill.style.width = (100*correctInLevel/GOAL_PER_LEVEL)+'%';
+  }
+
+  function start(){
+    score=0; level=1; lives=3; timeLeft=TIME_PER_LEVEL; correctInLevel=0; playing=true;
+    hide(startScreen); hide(howScreen); hide(endScreen);
+    show(hud); show(questionBar);
+    destroyAll();
+    nextQuestion();
+    setTimers();
+    loop();
+  }
+
+  function setTimers(){
+    clearInterval(spawnId); clearInterval(timerId);
+    const spawnMs = Math.max(420, SPAWN_BASE_MS - SPAWN_LVL_STEP*(level-1));
+    spawnId = setInterval(()=>{
+      // periodic distractors + ensure correct shows often
+      if(currentQuestion){
+        if(Math.random()<0.55) spawnBalloon(currentQuestion.ans,true);
+        // random decoys
+        for(let i=0;i<Math.random()*2;i++){
+          const dv = currentQuestion.ans + rand(-10,10);
+          spawnBalloon(Math.max(0,dv), false);
         }
-      },1000);
-    }
-
-    function newQuestion(){
-      clearBalloons();
-      let range = 10 + level*2;
-      let num1 = Math.floor(Math.random()*range)+1;
-      let num2 = Math.floor(Math.random()*range)+1;
-      let operator = chooseOperator();
-
-      switch(operator){
-        case '+': correctAnswer = num1 + num2; break;
-        case '-': correctAnswer = num1 - num2; break;
-        case '÷': num1 = num1 * num2; correctAnswer = num1 / num2; break;
       }
+    }, spawnMs);
 
-      question.textContent = `${num1} ${operator} ${num2} = ?`;
-
-      let answers = [correctAnswer];
-      while(answers.length < 4){
-        let fake = correctAnswer + Math.floor(Math.random()*10 - 5);
-        if(!answers.includes(fake) && fake >= 0){
-          answers.push(fake);
-        }
-      }
-      answers.sort(()=>Math.random()-0.5);
-
-      answers.forEach((ans,i)=>{
-        let balloon = document.createElement('div');
-        balloon.className = 'balloon';
-        balloon.style.left = `${20+i*20}%`;
-        balloon.style.top = '80%';
-        balloon.textContent = ans;
-        balloon.onclick = ()=>checkAnswer(ans);
-        gameContainer.appendChild(balloon);
-        animateBalloon(balloon);
-      });
-    }
-
-    function animateBalloon(balloon){
-      let pos = 80;
-      let speed = 0.05 + level*0.02;
-      let interval = setInterval(()=>{
-        if(pos <= 0){
-          clearInterval(interval);
-          balloon.remove();
-        } else {
-          pos -= speed;
-          balloon.style.top = pos+'%';
-        }
-      },50);
-    }
-
-    function chooseOperator(){
-      if(level <= 3) return '+';
-      if(level <= 6) return '-';
-      if(level == 10) return '÷';
-      if(level >= 7 && level <= 9){
-        return Math.random() > 0.5 ? '+' : '-';
-      }
-      if(level > 10){
-        let ops = ['+','-','÷'];
-        return ops[Math.floor(Math.random()*ops.length)];
-      }
-    }
-
-    function checkAnswer(ans){
-      if(ans === correctAnswer){
-        score += 10;
-        scoreDisplay.textContent = score;
-        nextLevel();
-      } else {
+    timerId = setInterval(()=>{
+      timeLeft--;
+      timeEl.textContent = timeLeft;
+      if(timeLeft<=0){
         loseLife();
-      }
-    }
-
-    function loseLife(){
-      lives--;
-      livesDisplay.textContent = lives;
-      if(lives <= 0){
-        endGame("Game Over! Try Again");
-      } else {
-        newQuestion();
-      }
-    }
-
-    function nextLevel(){
-      if(score % 30 === 0){
-        level++;
-        levelDisplay.textContent = level;
-        if(level > 10 && score % 100 === 0){
-          showMessage("🎉 You are a Genius! 🎉");
+        if(playing){ // continue same level
+          timeLeft = TIME_PER_LEVEL;
         }
       }
-      newQuestion();
-    }
+    }, 1000);
+  }
 
-    function clearBalloons(){
-      document.querySelectorAll('.balloon').forEach(b=>b.remove());
-    }
+  function end(win){
+    playing=false;
+    clearInterval(spawnId); clearInterval(timerId); cancelAnimationFrame(rafId);
+    destroyAll();
+    hide(hud); hide(questionBar);
+    endTitle.textContent = win ? '🏆 You Win!' : '😢 Game Over';
+    finalStats.textContent = `Score: ${score}  •  Highest Level: ${level}  •  Lives left: ${Math.max(0,lives)}`;
+    show(endScreen);
+  }
 
-    function endGame(msg){
-      clearInterval(timer);
-      bgMusic.pause();
-      showMessage(msg);
-      startBtn.style.display = 'block';
-    }
+  function destroyAll(){
+    balloons.forEach(b=> b.el.remove());
+    balloons=[];
+  }
 
-    function showMessage(msg){
-      message.textContent = msg;
-      message.style.display = 'block';
-      setTimeout(()=>{message.style.display='none';},3000);
-    }
+  function nextQuestion(){
+    currentQuestion = genQuestion(level);
+    questionBar.textContent = currentQuestion.text;
+    questionBar.classList.add('pulse');
+    setTimeout(()=>questionBar.classList.remove('pulse'), 400);
+    // burst: show all options immediately
+    currentQuestion.choices.forEach(v=> spawnBalloon(v, v===currentQuestion.ans));
+    updateHUD();
+  }
 
-    startBtn.addEventListener('click', startGame);
-  </script>
+  function spawnBalloon(value, isCorrect){
+    const el = document.createElement('div');
+    el.className='balloon';
+    el.style.left = Math.max(8, Math.floor(Math.random()*(stage.clientWidth-96)))+'px';
+    el.style.top  = '-140px';
+    el.style.background = COLORS[Math.floor(Math.random()*COLORS.length)];
+    el.dataset.value = value;
+    el.dataset.correct = isCorrect?'1':'0';
+
+    const label=document.createElement('div'); label.className='label'; label.textContent=value;
+    const string=document.createElement('div'); string.className='string';
+    el.appendChild(label); el.appendChild(string);
+    stage.appendChild(el);
+
+    const difficulty = (level-1);
+    const vy = BASE_FALL + FALL_PER_LEVEL*difficulty + rand(-8,24); // px/sec
+    const bObj = {el, y:-140-rand(0,40), vy, correct:isCorrect};
+    el.addEventListener('pointerdown', (e)=>{
+      e.preventDefault();
+      if(!playing) return;
+      try{ if(!muted){ popFx.currentTime=0; popFx.play(); } }catch(_){}
+      if(isCorrectAnswer(el)){ onCorrect(el, bObj); } else { onWrong(el, bObj); }
+    }, {passive:false});
+
+    balloons.push(bObj);
+  }
+
+  function isCorrectAnswer(node){ return node.dataset.correct==='1'; }
+
+  function onCorrect(el, bObj){
+    score++;
+    correctInLevel++;
+    try{ if(!muted){ okFx.currentTime=0; okFx.play(); } }catch(_){}
+    el.remove(); removeBalloon(bObj);
+    updateHUD();
+
+    if(correctInLevel>=GOAL_PER_LEVEL){
+      // level up
+      level++;
+      if(level===11){ // beat level 10
+        celebrate();
+      }
+      correctInLevel=0;
+      timeLeft = TIME_PER_LEVEL;
+      setTimers();
+      toast(`Level Up! → Level ${level}`);
+    }
+    // new question every correct burst
+    destroyAll();
+    nextQuestion();
+  }
+
+  function onWrong(el, bObj){
+    el.remove(); removeBalloon(bObj);
+    loseLife();
+  }
+
+  function loseLife(){
+    lives--;
+    try{ if(!muted){ badFx.currentTime=0; badFx.play(); } }catch(_){}
+    updateHUD();
+    if(lives<=0){ end(false); return; }
+    // keep same level, new question
+    destroyAll();
+    nextQuestion();
+  }
+
+  function removeBalloon(b){ balloons = balloons.filter(x=>x!==b); }
+
+  function loop(){
+    const dt = 1/60;
+    for(const b of balloons){
+      b.y += b.vy*dt;
+      b.el.style.transform = `translateY(${b.y}px)`;
+      if(b.y > stage.clientHeight + 60){
+        // missed: if it was the correct one, you lose a life
+        if(b.correct){ loseLife(); destroyAll(); nextQuestion(); }
+        b.el.remove();
+        removeBalloon(b);
+      }
+    }
+    rafId = requestAnimationFrame(loop);
+  }
+
+  // UI helpers
+  function toast(msg){
+    const div=document.createElement('div');
+    div.style.position='fixed'; div.style.left='50%'; div.style.top='50%'; div.style.transform='translate(-50%,-50%)';
+    div.style.background='white'; div.style.color='var(--ink)'; div.style.padding='14px 18px'; div.style.borderRadius='14px';
+    div.style.boxShadow='0 18px 48px rgba(0,0,0,.25)'; div.style.fontWeight='900'; div.style.zIndex='30';
+    div.textContent=msg;
+    document.body.appendChild(div);
+    setTimeout(()=>div.remove(),1200);
+  }
+
+  function celebrate(){
+    // simple confetti burst
+    const icons = ['🎉','🎈','⭐','✨','🎊'];
+    for(let i=0;i<60;i++){
+      const span=document.createElement('div');
+      span.className='confetti';
+      span.textContent = icons[Math.floor(Math.random()*icons.length)];
+      span.style.left = Math.random()*100 + 'vw';
+      span.style.animationDuration = (1.8 + Math.random()*1.6) + 's';
+      span.style.fontSize = (18 + Math.random()*16) + 'px';
+      document.body.appendChild(span);
+      setTimeout(()=>span.remove(), 3200);
+    }
+    toast('You finished Level 10! Mixed mode unlocked 🎉');
+  }
+
+  // Buttons
+  startBtn.addEventListener('click', ()=>{ setMute(false); start(); });
+  howBtn.addEventListener('click', ()=>{ hide(startScreen); show(howScreen); });
+  backBtn.addEventListener('click', ()=>{ hide(howScreen); show(startScreen); });
+  startFromHowBtn.addEventListener('click', ()=>{ hide(howScreen); setMute(false); start(); });
+  againBtn.addEventListener('click', ()=>{ setMute(false); start(); });
+
+  // Keep balloons in bounds on resize
+  window.addEventListener('resize', ()=>{
+    balloons.forEach(b=>{
+      const x = parseFloat(b.el.style.left)||0;
+      if(x > stage.clientWidth - 96){ b.el.style.left = Math.max(8, stage.clientWidth-96) + 'px'; }
+    });
+  });
+
+  // Start muted by default (mobile policy)
+  setMute(false);
+})();
+</script>
 </body>
 </html>

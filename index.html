@@ -1,208 +1,436 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Math Balloons Game</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      font-family: "Comic Sans MS", sans-serif;
-      background: url('https://i.ibb.co/VvnbMrt/cartoon-bg.jpg') no-repeat center center fixed;
-      background-size: cover;
-    }
-    #gameCanvas {
-      display: block;
-      margin: auto;
-      background: transparent;
-    }
-    #ui {
-      position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 30px;
-      font-size: 22px;
-      font-weight: bold;
-      color: #fff;
-      text-shadow: 2px 2px 4px #000;
-    }
-    #question {
-      position: absolute;
-      top: 60px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 28px;
-      font-weight: bold;
-      color: yellow;
-      text-shadow: 2px 2px 4px #000;
-    }
-    #message {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%,-50%);
-      font-size: 36px;
-      color: #fff;
-      text-shadow: 2px 2px 5px #000;
-      display: none;
-    }
-  </style>
+<meta charset="UTF-8" />
+<title>Math Balloons 🟣🎈</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root{
+    --bg1:#8fd3fe; --bg2:#eaf9ff;      /* سماء متدرجة */
+    --ink:#16324f; --accent:#6c5ce7; --good:#2ecc71; --bad:#e74c3c;
+    --panel: rgba(255,255,255,.85);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font-family: system-ui, Arial, sans-serif;
+    color:var(--ink);
+    background: linear-gradient(180deg,var(--bg1),var(--bg2));
+    overflow:hidden;
+  }
+
+  /* سماء وغيوم متحركة (بدون صور خارجية) */
+  #sky{
+    position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden;
+  }
+  .cloud{
+    position:absolute;
+    width:180px; height:65px;
+    background:#fff;
+    border-radius:50px;
+    filter: drop-shadow(0 10px 14px rgba(0,0,0,.12));
+    opacity:.95;
+    animation: drift linear infinite;
+  }
+  .cloud:before, .cloud:after{
+    content:""; position:absolute; background:#fff; border-radius:50%;
+  }
+  .cloud:before{ width:90px; height:90px; left:20px; top:-30px }
+  .cloud:after { width:120px; height:120px; left:70px; top:-50px }
+
+  /* مسارات مختلفة للغيوم */
+  .c1{ top:10%;  left:-220px; animation-duration:70s }
+  .c2{ top:25%;  left:-260px; animation-duration:85s; transform:scale(1.1) }
+  .c3{ top:40%;  left:-240px; animation-duration:75s; transform:scale(.9) }
+  .c4{ top:60%;  left:-300px; animation-duration:90s; transform:scale(1.15) }
+  .c5{ top:75%;  left:-260px; animation-duration:80s; transform:scale(.95) }
+
+  @keyframes drift{
+    from{ transform: translateX(-220px) }
+    to  { transform: translateX(calc(100vw + 220px)) }
+  }
+
+  /* HUD */
+  #hud{
+    position:fixed; inset:auto 0 auto 0; top:10px; display:flex; justify-content:center; gap:12px; z-index:5;
+  }
+  .chip{
+    background:var(--panel); backdrop-filter:saturate(120%) blur(6px);
+    padding:8px 12px; border-radius:12px; font-weight:700; box-shadow:0 6px 18px rgba(0,0,0,.12);
+  }
+  #muteBtn{cursor:pointer; border:none; background:var(--panel); border-radius:12px; padding:8px 12px; font-weight:700}
+  #muteBtn:hover{filter:brightness(1.05)}
+
+  /* Screens */
+  .overlay{
+    position:fixed; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:rgba(0,0,0,.6); color:#fff; text-align:center; padding:24px; z-index:10;
+  }
+  .card{
+    width:min(720px,92vw); background:#fff; color:var(--ink); border-radius:20px; padding:24px;
+    box-shadow:0 24px 60px rgba(0,0,0,.35);
+  }
+  h1{margin:0 0 8px}
+  .lead{margin:0 0 18px; opacity:.9}
+  .controls{display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-top:8px}
+  .btn{
+    border:none; border-radius:12px; padding:12px 18px; font-size:16px; font-weight:700; cursor:pointer;
+    background:var(--accent); color:#fff; box-shadow:0 10px 24px rgba(108,92,231,.35);
+  }
+  .btn.secondary{background:#00b894}
+  .btn:hover{filter:brightness(1.05)}
+  .result h2{margin:0 0 8px}
+  .result p{margin:0 0 16px}
+
+  /* Game area */
+  #game{
+    position:fixed; inset:0; overflow:hidden; z-index:1; /* فوق الغيوم */
+  }
+  #questionBar{
+    position:fixed; top:56px; left:50%; transform:translateX(-50%);
+    background:var(--panel); padding:10px 16px; border-radius:12px; font-size:18px; font-weight:800;
+    box-shadow:0 10px 24px rgba(0,0,0,.12); z-index:3; max-width:95vw;
+  }
+
+  /* Balloons */
+  .balloon{
+    position:absolute; width:82px; height:106px;
+    border-radius:50% 50% 50% 50% / 60% 60% 40% 40%;
+    box-shadow: inset 0 10px 18px rgba(255,255,255,.5), 0 12px 22px rgba(0,0,0,.18);
+    display:flex; align-items:center; justify-content:center; font-weight:900; font-size:20px; color:#083;
+    user-select:none; touch-action:none; cursor:pointer; will-change:transform;
+  }
+  .balloon .string{
+    position:absolute; left:50%; top:94px; width:2px; height:30px; transform:translateX(-50%);
+    background:rgba(0,0,0,.25);
+  }
+  .balloon .label{
+    background: rgba(255,255,255,.75); padding:4px 10px; border-radius:10px; box-shadow:0 3px 10px rgba(0,0,0,.12);
+  }
+
+  /* Hearts (lives) */
+  .heart{color:#e63946; margin:0 2px}
+
+  /* Helpers */
+  .hidden{display:none}
+  .pulse{animation:pulse 0.5s}
+  @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+</style>
 </head>
 <body>
-  <div id="ui">
-    <div>Score: <span id="score">0</span></div>
-    <div>Level: <span id="level">1</span></div>
-    <div>Time: <span id="time">30</span>s</div>
+
+<!-- سماء وغيوم -->
+<div id="sky">
+  <div class="cloud c1"></div>
+  <div class="cloud c2"></div>
+  <div class="cloud c3"></div>
+  <div class="cloud c4"></div>
+  <div class="cloud c5"></div>
+</div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div class="chip" id="scoreChip">Score: 0</div>
+  <div class="chip" id="targetChip">Target: 15</div>
+  <div class="chip" id="timerChip">Time: 45s</div>
+  <div class="chip" id="livesChip">Lives: <span id="lives"></span></div>
+  <button id="muteBtn" aria-label="Toggle sound">🔊 Sound On</button>
+</div>
+
+<div id="questionBar" class="hidden">What is 3 + 4 ?</div>
+
+<!-- Game stage -->
+<div id="game" aria-label="game stage"></div>
+
+<!-- Start Screen -->
+<div id="startScreen" class="overlay">
+  <div class="card">
+    <h1>🎈 Math Balloons</h1>
+    <p class="lead">Pop the balloon with the <b>correct answer</b> before it reaches the ground.  
+    Earn points, beat the timer, and don’t lose all your lives!</p>
+    <div class="controls">
+      <button class="btn" id="startBtn">Start Game</button>
+      <button class="btn secondary" id="howBtn">How to Play</button>
+    </div>
+    <p style="margin-top:10px;opacity:.85">Tip: Works on mobile — just tap the balloons.</p>
   </div>
-  <div id="question">Question: ?</div>
-  <div id="message"></div>
-  <canvas id="gameCanvas" width="800" height="600"></canvas>
+</div>
 
-  <audio id="bgMusic" loop autoplay>
-    <source src="https://www.bensound.com/bensound-music/bensound-littleidea.mp3" type="audio/mpeg">
-  </audio>
+<!-- How to screen -->
+<div id="howScreen" class="overlay hidden">
+  <div class="card">
+    <h2>How to Play</h2>
+    <ul style="text-align:left; line-height:1.6">
+      <li>A math question appears at the top.</li>
+      <li>Several balloons fall with different answers.</li>
+      <li>Tap the <b>correct</b> balloon to score +1 and get a new question.</li>
+      <li>Wrong balloon or missing the correct one costs a <b>life</b>.</li>
+      <li>Win by reaching the <b>target score</b> before time runs out!</li>
+    </ul>
+    <div class="controls">
+      <button class="btn" id="backBtn">Back</button>
+      <button class="btn" id="startFromHowBtn">Start Now</button>
+    </div>
+  </div>
+</div>
 
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
+<!-- End Screen -->
+<div id="endScreen" class="overlay hidden">
+  <div class="card result">
+    <h2 id="endTitle">Game Over</h2>
+    <p id="finalStats">Score: 0</p>
+    <div class="controls">
+      <button class="btn" id="playAgainBtn">Play Again</button>
+    </div>
+  </div>
+</div>
 
-    let balloons = [];
-    let score = 0;
-    let level = 1;
-    let time = 30;
-    let correctAnswer = 0;
-    let question = "";
-    let gameInterval, timerInterval;
+<!-- Audio -->
+<audio id="bgm" src="https://cdn.pixabay.com/download/audio/2021/09/16/audio_0ef4e1d2af.mp3?filename=soft-ambient-110241.mp3" preload="auto" loop></audio>
+<audio id="popSfx" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_1a2e2f3a7d.mp3?filename=pop-94319.mp3" preload="auto"></audio>
+<audio id="okSfx"  src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_1dbe94d885.mp3?filename=correct-2-46134.mp3" preload="auto"></audio>
+<audio id="badSfx" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_6f3cfc7f1b.mp3?filename=error-126627.mp3" preload="auto"></audio>
 
-    const colors = ["red","blue","green","purple","orange","pink","cyan"];
+<script>
+(function(){
+  const stage = document.getElementById('game');
+  const questionBar = document.getElementById('questionBar');
+  const hud = document.getElementById('hud');
+  const scoreChip = document.getElementById('scoreChip');
+  const targetChip = document.getElementById('targetChip');
+  const timerChip = document.getElementById('timerChip');
+  const livesChip = document.getElementById('livesChip');
+  const livesEl = document.getElementById('lives');
 
-    class Balloon {
-      constructor(x, y, value, isCorrect) {
-        this.x = x;
-        this.y = y;
-        this.value = value;
-        this.isCorrect = isCorrect;
-        this.radius = 35;
-        this.color = colors[Math.floor(Math.random() * colors.length)];
+  const startScreen = document.getElementById('startScreen');
+  const howScreen = document.getElementById('howScreen');
+  const endScreen = document.getElementById('endScreen');
+  const endTitle  = document.getElementById('endTitle');
+  const finalStats= document.getElementById('finalStats');
+
+  const startBtn = document.getElementById('startBtn');
+  const startFromHowBtn = document.getElementById('startFromHowBtn');
+  const howBtn   = document.getElementById('howBtn');
+  const backBtn  = document.getElementById('backBtn');
+  const againBtn = document.getElementById('playAgainBtn');
+  const muteBtn  = document.getElementById('muteBtn');
+
+  const bgm   = document.getElementById('bgm');
+  const popFx = document.getElementById('popSfx');
+  const okFx  = document.getElementById('okSfx');
+  const badFx = document.getElementById('badSfx');
+
+  /* الإعدادات */
+  const TARGET_SCORE = 15;
+  const START_TIME   = 45;   // seconds
+  const START_LIVES  = 3;
+  const SPAWN_MS     = 900;  // كل كم ميلي ثانية تنزل بالونة
+  const BASE_FALL    = 110;  // px/sec
+  const EXTRA_FALL   = 140;  // يزداد حسب الزمن
+
+  let muted = false;
+  let score, timeLeft, lives, playing = false;
+  let spawnId, rafId, timerId;
+  let balloons = [];
+  let currentQuestion = null;
+
+  const COLORS = ['#ff6b6b','#4dabf7','#51cf66','#ffd43b','#845ef7','#ffa94d','#22b8cf'];
+
+  function setMuteState(m){
+    muted = m;
+    bgm.muted = popFx.muted = okFx.muted = badFx.muted = muted;
+    muteBtn.textContent = muted ? '🔇 Sound Off' : '🔊 Sound On';
+  }
+  muteBtn.addEventListener('click',()=> setMuteState(!muted));
+
+  function show(el){ el.classList.remove('hidden'); }
+  function hide(el){ el.classList.add('hidden'); }
+
+  function hearts(n){
+    let s='';
+    for(let i=0;i<n;i++) s += '❤️';
+    for(let i=n;i<START_LIVES;i++) s += '🤍';
+    livesEl.innerHTML = s;
+  }
+
+  /* المراحل: 1-3 جمع، 4-6 طرح، 7-9 قسمة، 10+ مختلط */
+  function genQuestion(){
+    let a,b,ans,op;
+    const lvl = Math.min(10, Math.floor(score/5)+1); // مثال بسيط لتقدم المستوى
+    if(lvl <= 3){ op='+'; a=rand(1,10); b=rand(1,10); ans=a+b; }
+    else if(lvl <= 6){ op='-'; a=rand(5,20); b=rand(1,a); ans=a-b; }
+    else if(lvl <= 9){ op='÷'; b=rand(2,10); ans=rand(1,10); a=b*ans; }
+    else{
+      const ops=['+','-','÷']; op=ops[Math.floor(Math.random()*ops.length)];
+      if(op==='+'){ a=rand(5,20); b=rand(5,15); ans=a+b; }
+      if(op==='-'){ a=rand(10,25); b=rand(1,a); ans=a-b; }
+      if(op==='÷'){ b=rand(2,10); ans=rand(1,12); a=b*ans; }
+    }
+    const text = `What is ${a} ${op} ${b} ?`;
+    const choices = new Set([ans]);
+    while(choices.size<4){
+      const delta = rand(-8,8) || 1;
+      choices.add(Math.max(0, ans+delta));
+    }
+    const arr = Array.from(choices).sort(()=>Math.random()-0.5);
+    return {text, ans, choices:arr};
+  }
+
+  function rand(min,max){ return Math.floor(Math.random()*(max-min+1))+min; }
+
+  function spawnChoiceBalloon(value, isCorrect){
+    const node = document.createElement('div');
+    node.className = 'balloon';
+    node.style.left = Math.max(8, Math.floor(Math.random()*(stage.clientWidth-90))) + 'px';
+    node.style.top  = '-120px';
+    node.style.background = COLORS[Math.floor(Math.random()*COLORS.length)];
+    node.dataset.value = value;
+    node.dataset.correct = isCorrect ? '1':'0';
+
+    const label = document.createElement('div');
+    label.className = 'label';
+    label.textContent = value;
+    const string = document.createElement('div');
+    string.className = 'string';
+
+    node.appendChild(label);
+    node.appendChild(string);
+    stage.appendChild(node);
+
+    node._y = -120 - rand(0,40);
+    const difficulty = (START_TIME - timeLeft) / START_TIME; // 0..1
+    node._vy = BASE_FALL + EXTRA_FALL * difficulty + rand(-10, 30); // px/sec
+
+    node.addEventListener('pointerdown', (e)=>{
+      e.preventDefault();
+      if(!playing) return;
+      if(!muted) { try{ popFx.currentTime=0; popFx.play(); }catch(e){} }
+
+      const correct = node.dataset.correct === '1';
+      if(correct){
+        score++; scoreChip.textContent = 'Score: ' + score;
+        questionPulse();
+        if(!muted) { try{ okFx.currentTime=0; okFx.play(); }catch(e){} }
+        destroyAllBalloons();
+        nextQuestion();
+      }else{
+        loseLife();
       }
-      draw() {
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2);
-        ctx.fillStyle = this.color;
-        ctx.fill();
-        ctx.strokeStyle = "#fff";
-        ctx.stroke();
-        ctx.fillStyle = "white";
-        ctx.font = "20px Comic Sans MS";
-        ctx.textAlign = "center";
-        ctx.fillText(this.value, this.x, this.y+7);
-      }
-      update() {
-        this.y -= 1 + level*0.3;
-        if(this.y + this.radius < 0){
-          this.reset();
+      node.remove();
+    }, {passive:false});
+
+    balloons.push(node);
+  }
+
+  function questionPulse(){
+    questionBar.classList.add('pulse');
+    setTimeout(()=>questionBar.classList.remove('pulse'), 450);
+  }
+
+  function destroyAllBalloons(){
+    balloons.forEach(b=> b.remove());
+    balloons = [];
+  }
+
+  function nextQuestion(){
+    const q = genQuestion();
+    currentQuestion = q;
+    questionBar.textContent = q.text;
+    q.choices.forEach(v => spawnChoiceBalloon(v, v===q.ans));
+  }
+
+  function loop(){
+    const dt = 1/60;
+    for(const b of balloons){
+      b._y += b._vy * dt;
+      b.style.transform = `translateY(${b._y}px)`;
+      if(b._y > stage.clientHeight + 40){
+        if(b.dataset.correct === '1'){
+          loseLife();
+          destroyAllBalloons();
+          nextQuestion();
         }
-        this.draw();
-      }
-      reset() {
-        this.y = canvas.height + this.radius;
-        this.x = Math.random() * (canvas.width - this.radius*2) + this.radius;
+        b.remove();
       }
     }
+    balloons = balloons.filter(b => b.isConnected);
+    rafId = requestAnimationFrame(loop);
+  }
 
-    function generateQuestion() {
-      let a, b;
-      if (level <= 3) { // addition
-        a = Math.floor(Math.random()*10);
-        b = Math.floor(Math.random()*10);
-        correctAnswer = a+b;
-        question = `${a} + ${b} = ?`;
-      } else if (level <= 6) { // subtraction
-        a = Math.floor(Math.random()*10+5);
-        b = Math.floor(Math.random()*10);
-        correctAnswer = a-b;
-        question = `${a} - ${b} = ?`;
-      } else if (level <= 9) { // division
-        b = Math.floor(Math.random()*9)+1;
-        correctAnswer = Math.floor(Math.random()*9)+1;
-        a = b*correctAnswer;
-        question = `${a} ÷ ${b} = ?`;
-      } else { // mix
-        const type = Math.floor(Math.random()*3);
-        return (level = [3,6,9][type]+1, generateQuestion());
+  function loseLife(){
+    lives--;
+    if(!muted){ try{ badFx.currentTime=0; badFx.play(); }catch(e){} }
+    hearts(lives);
+    if(lives<=0){ end(false); }
+  }
+
+  function start(){
+    score = 0; timeLeft = START_TIME; lives = START_LIVES; playing = true;
+    scoreChip.textContent = 'Score: 0';
+    targetChip.textContent = 'Target: ' + TARGET_SCORE;
+    timerChip.textContent = 'Time: ' + timeLeft + 's';
+    hearts(lives);
+
+    hide(startScreen); hide(howScreen); hide(endScreen);
+    show(hud); show(questionBar);
+
+    destroyAllBalloons();
+    nextQuestion();
+
+    try{ bgm.currentTime = 0; if(!muted) bgm.play(); }catch(e){}
+
+    clearInterval(spawnId);
+    spawnId = setInterval(()=>{
+      const sprinkle = Math.random() < 0.35;
+      const decoyVal = currentQuestion ? currentQuestion.ans + rand(-10,10) : rand(1,50);
+      spawnChoiceBalloon(decoyVal, false);
+      if(sprinkle) spawnChoiceBalloon(rand(0,40), false);
+      if(Math.random() < 0.45 && currentQuestion){
+        spawnChoiceBalloon(currentQuestion.ans, true);
       }
+    }, SPAWN_MS);
 
-      document.getElementById("question").innerText = "Question: " + question;
+    cancelAnimationFrame(rafId);
+    rafId = requestAnimationFrame(loop);
 
-      balloons = [];
-      let correctPlaced = false;
-      for(let i=0; i<5; i++){
-        let val;
-        if(i===4 && !correctPlaced) {
-          val = correctAnswer;
-          correctPlaced = true;
-        } else {
-          val = correctAnswer + Math.floor(Math.random()*6)-3;
-          if(val<0) val = Math.abs(val);
-        }
-        balloons.push(new Balloon(Math.random()*700+50, Math.random()*400+200, val, val===correctAnswer));
-      }
-    }
+    clearInterval(timerId);
+    timerId = setInterval(()=>{
+      timeLeft--;
+      timerChip.textContent = 'Time: ' + timeLeft + 's';
+      if(timeLeft<=0){ end(score >= TARGET_SCORE); }
+    }, 1000);
+  }
 
-    function startGame() {
-      generateQuestion();
-      gameInterval = setInterval(updateGame, 30);
-      timerInterval = setInterval(()=>{
-        time--;
-        document.getElementById("time").innerText = time;
-        if(time<=0) endGame(false);
-      },1000);
-    }
+  function end(win){
+    playing = false;
+    clearInterval(spawnId);
+    clearInterval(timerId);
+    cancelAnimationFrame(rafId);
+    destroyAllBalloons();
+    hide(hud); hide(questionBar);
+    endTitle.textContent = win ? '🏆 You are a Genius!' : '😢 Game Over';
+    finalStats.textContent = `Score: ${score} / ${TARGET_SCORE}  •  Time: ${START_TIME - timeLeft}s  •  Lives left: ${Math.max(0,lives)}`;
+    show(endScreen);
+    try{ bgm.pause(); }catch(e){}
+  }
 
-    function updateGame() {
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-      balloons.forEach(b=>b.update());
-    }
+  // Buttons
+  startBtn.addEventListener('click', ()=>{ setMuteState(false); start(); });
+  howBtn.addEventListener('click', ()=>{ hide(startScreen); show(howScreen); });
+  backBtn.addEventListener('click', ()=>{ hide(howScreen); show(startScreen); });
+  startFromHowBtn.addEventListener('click', ()=>{ hide(howScreen); start(); });
+  againBtn.addEventListener('click', ()=> start());
 
-    canvas.addEventListener("click", e=>{
-      const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      balloons.forEach(b=>{
-        const dx = mx - b.x;
-        const dy = my - b.y;
-        if(Math.sqrt(dx*dx+dy*dy) < b.radius){
-          if(b.isCorrect){
-            score+=10;
-            document.getElementById("score").innerText = score;
-            level++;
-            document.getElementById("level").innerText = level;
-            time = 30;
-            generateQuestion();
-            if(level>10) endGame(true);
-          } else {
-            score-=5;
-            document.getElementById("score").innerText = score;
-          }
-        }
-      });
+  // Resize guard
+  window.addEventListener('resize', ()=>{
+    balloons.forEach(b=>{
+      const x = parseFloat(b.style.left)||0;
+      if(x > stage.clientWidth - 90){ b.style.left = Math.max(8, stage.clientWidth-90) + 'px'; }
     });
+  });
 
-    function endGame(win){
-      clearInterval(gameInterval);
-      clearInterval(timerInterval);
-      const msg = document.getElementById("message");
-      if(win){
-        msg.innerText = "🎉 You are a Genius! 🎉";
-      } else {
-        msg.innerText = "⏳ Time's Up! Try Again!";
-      }
-      msg.style.display = "block";
-    }
-
-    startGame();
-  </script>
+  setMuteState(false);
+})();
+</script>
 </body>
 </html>
